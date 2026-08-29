@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<!-- saved from url=(0057)file:///Users/gvnezhivenko/Downloads/row_number_demo.html -->
+<html lang="ru"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROW_NUMBER() — интерактивная демонстрация OVER()</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#2c2c2a;padding:24px;min-height:100vh}.card{max-width:1380px;margin:0 auto;background:#fff;border:1px solid #e5e4de;border-radius:18px;padding:28px;box-shadow:0 2px 10px rgba(0,0,0,.03)}h1{font-size:32px;margin-bottom:8px}.subtitle{font-size:16px;color:#5f5e5a;line-height:1.55;margin-bottom:22px}.controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:22px}.control{border:1px solid #e5e4de;border-radius:14px;padding:16px;background:#fbfbfa}.control-title{font-size:15px;font-weight:700;margin-bottom:10px;color:#0C447C}.control p{font-size:13px;color:#5f5e5a;line-height:1.5;margin-bottom:12px}.switch-row{display:flex;align-items:center;gap:10px}.switch{width:48px;height:26px;border-radius:999px;background:#d3d1c7;position:relative;cursor:pointer;transition:.2s}.switch:before{content:"";position:absolute;width:20px;height:20px;border-radius:50%;background:white;top:3px;left:3px;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:.2s}.switch.on{background:#1f6acb}.switch.on:before{left:25px}.select{width:100%;padding:9px 10px;border:1px solid #d3d1c7;border-radius:9px;background:white;font-size:14px}.layout{display:grid;grid-template-columns:330px 1fr;gap:22px}.side{border:1px solid #e5e4de;border-radius:16px;background:#fafaf8;padding:18px;height:fit-content}.section-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#777;margin-bottom:12px}.hint-box{margin-top:18px;border:1px solid #d6e5fb;background:#eef5ff;border-radius:12px;padding:14px;font-size:13px;line-height:1.6;color:#244b75}.legend{margin-top:18px;display:flex;flex-direction:column;gap:10px;font-size:13px;color:#5f5e5a}.legend-item{display:flex;gap:10px;align-items:center}.dot{width:18px;height:18px;border-radius:5px;border:1px solid rgba(0,0,0,.08)}.goods{background:#FAEEDA}.realty{background:#EAF3DE}.transport{background:#E6F1FB}.dash{width:24px;height:16px;border:2px dashed #1f6acb;border-radius:4px}.arrow-icon{font-size:22px;color:#1f6acb}.main{border:1px solid #e5e4de;border-radius:16px;padding:20px}.top-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;margin-bottom:18px}.sql-box,.explain{border-radius:12px;padding:15px}.sql-box{font-family:'Courier New',monospace;background:#f5f5f3;border:1px solid #e5e4de;line-height:1.75;font-size:13px;white-space:pre;overflow:auto}.kw{color:#185FA5;font-weight:700}.fn{color:#8B2FC9;font-weight:700}.explain{background:#fff8e7;border:1px solid #efd79a;color:#725100;line-height:1.55;font-size:14px}.result-wrap{position:relative;overflow:visible}.result-table{position:relative;z-index:2}table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}th{text-align:left;color:#777;font-size:12px;padding:10px 12px;border-bottom:1px solid #e5e4de;background:#fff}td{padding:10px 12px;border-bottom:1px solid #f0efe8;background:#fff}.vcell{font-weight:700;text-align:center;border-radius:6px}.rn{font-weight:800;color:#0C447C;text-align:center;background:#f4f8ff}.row-window-start td{border-top:2px dashed var(--win-color)}.row-window-end td{border-bottom:2px dashed var(--win-color)}.window-first-cell{border-left:2px dashed var(--win-color)!important}.window-last-cell{border-right:2px dashed var(--win-color)!important}.row-window td{background:linear-gradient(90deg,var(--win-bg),rgba(255,255,255,.35))}.rank-arrow{font-size:22px;font-weight:900;color:var(--arrow-color);text-align:center}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700}.pill-blue{background:#E6F1FB;color:#0C447C}.pill-yellow{background:#FAEEDA;color:#7a4b00}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}.mini-card{border:1px solid #e5e4de;border-radius:13px;padding:14px;background:#fff;line-height:1.45;font-size:13px;color:#5f5e5a}.mini-card.active{border-color:#85B7EB;background:#f4f9ff;box-shadow:inset 0 0 0 1px #85B7EB}.mini-title{font-weight:800;color:#2c2c2a;margin-bottom:7px}.footnote{margin-top:16px;background:#eef5ff;border:1px solid #cfe0fb;color:#0C447C;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5}.summary-box{margin-top:16px;background:#f7f4ff;border:1px solid #ddd1ff;border-radius:12px;padding:14px;line-height:1.55;font-size:14px}.summary-box b{color:#4b2f8f}@media(max-width:1050px){.layout,.top-grid,.controls{grid-template-columns:1fr}.cards{grid-template-columns:1fr 1fr}}@media(max-width:650px){.cards{grid-template-columns:1fr}.card{padding:18px}body{padding:12px}}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>ROW_NUMBER(): как работает OVER()</h1>
+  <div class="subtitle">Включайте и выключайте <b>PARTITION BY vertical</b> и <b>ORDER BY event_date</b>, меняйте направление сортировки и смотрите, как меняется нумерация строк.</div>
+
+  <div class="controls">
+    <div class="control">
+      <div class="control-title">1. PARTITION BY vertical</div>
+      <p>Делит таблицу на отдельные окна по vertical. Нумерация начинается заново в каждом окне.</p>
+      <div class="switch-row"><div id="partSwitch" class="switch on" onclick="togglePartition()"></div><b id="partText">Включено</b></div>
+    </div>
+    <div class="control">
+      <div class="control-title">2. ORDER BY event_date</div>
+      <p>Задает направление, в котором ROW_NUMBER() идет по строкам внутри окна.</p>
+      <div class="switch-row"><div id="orderSwitch" class="switch on" onclick="toggleOrder()"></div><b id="orderText">Включено</b></div>
+    </div>
+    <div class="control">
+      <div class="control-title">3. Направление сортировки</div>
+      <p>ASC — от ранней даты к поздней. DESC — от поздней даты к ранней.</p>
+      <select id="direction" class="select" onchange="setDirection(this.value)" style="opacity: 1;">
+        <option value="ASC">ASC</option>
+        <option value="DESC">DESC</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="side">
+      <div class="section-title">Исходные данные</div>
+      <table id="source"><thead><tr><th>id</th><th>vertical</th><th>event_date</th><th>contacts</th></tr></thead><tbody><tr><td>1</td><td><span class="pill transport">Transport</span></td><td>2026-05-23</td><td>450 039</td></tr><tr><td>2</td><td><span class="pill realty">Realty</span></td><td>2026-05-26</td><td>447 765</td></tr><tr><td>3</td><td><span class="pill realty">Realty</span></td><td>2026-05-22</td><td>416 259</td></tr><tr><td>4</td><td><span class="pill realty">Realty</span></td><td>2026-05-23</td><td>354 331</td></tr><tr><td>5</td><td><span class="pill goods">Goods</span></td><td>2026-05-23</td><td>4 173 397</td></tr><tr><td>6</td><td><span class="pill transport">Transport</span></td><td>2026-05-26</td><td>504 986</td></tr><tr><td>7</td><td><span class="pill goods">Goods</span></td><td>2026-05-22</td><td>4 440 432</td></tr><tr><td>8</td><td><span class="pill transport">Transport</span></td><td>2026-05-22</td><td>485 472</td></tr><tr><td>9</td><td><span class="pill goods">Goods</span></td><td>2026-05-24</td><td>4 452 956</td></tr><tr><td>10</td><td><span class="pill realty">Realty</span></td><td>2026-05-25</td><td>463 776</td></tr><tr><td>11</td><td><span class="pill realty">Realty</span></td><td>2026-05-24</td><td>368 190</td></tr><tr><td>12</td><td><span class="pill transport">Transport</span></td><td>2026-05-25</td><td>511 828</td></tr><tr><td>13</td><td><span class="pill goods">Goods</span></td><td>2026-05-26</td><td>4 647 388</td></tr><tr><td>14</td><td><span class="pill transport">Transport</span></td><td>2026-05-24</td><td>476 028</td></tr><tr><td>15</td><td><span class="pill goods">Goods</span></td><td>2026-05-25</td><td>4 700 856</td></tr></tbody></table>
+      <div class="hint-box"><b>Что такое ROW_NUMBER()?</b><br>Функция присваивает каждой строке номер внутри текущего окна. Нумерация всегда начинается с 1.</div>
+      <div class="legend">
+        <div class="legend-item"><span class="dot goods"></span>Goods</div>
+        <div class="legend-item"><span class="dot realty"></span>Realty</div>
+        <div class="legend-item"><span class="dot transport"></span>Transport</div>
+        <div class="legend-item"><span class="dash"></span>Текущее окно</div>
+        <div class="legend-item"><span class="arrow-icon">↓</span>Направление ранжирования</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="top-grid">
+        <div>
+          <div class="section-title">Текущий запрос</div>
+          <div id="sql" class="sql-box"><span class="kw">SELECT</span>
+    id,
+    vertical,
+    event_date,
+    contacts,
+    <span class="fn">ROW_NUMBER()</span> <span class="kw">OVER</span>(
+        <span class="kw">PARTITION BY</span> vertical
+        <span class="kw">ORDER BY</span> event_date ASC
+    ) <span class="kw">AS</span> rn
+<span class="kw">FROM</span> tbl;</div>
+        </div>
+        <div>
+          <div class="section-title">Как читать результат</div>
+          <div id="explain" class="explain"><b>Есть PARTITION BY и ORDER BY.</b><br>SQL делит таблицу на окна по vertical, а внутри каждого окна ранжирует строки по event_date: от ранней даты к поздней.</div>
+        </div>
+      </div>
+
+      <div class="section-title">Результат</div>
+      <div class="result-wrap">
+        <table class="result-table">
+          <thead>
+            <tr>
+              <th>id</th><th>vertical</th><th>event_date</th><th>contacts</th><th>направление</th><th>row_number</th>
+            </tr>
+          </thead>
+          <tbody id="result"><tr class="row-window row-window-start " style="--win-color: #EF9F27; --win-bg: rgba(250,238,218,.72); --arrow-color: #EF9F27;"><td class="window-first-cell">7</td><td><span class="pill goods">Goods</span></td><td>2026-05-22</td><td>4 440 432</td><td class="rank-arrow">↓</td><td class="rn window-last-cell">1</td></tr><tr class="row-window  " style="--win-color: #EF9F27; --win-bg: rgba(250,238,218,.72); --arrow-color: #EF9F27;"><td class="window-first-cell">5</td><td><span class="pill goods">Goods</span></td><td>2026-05-23</td><td>4 173 397</td><td class="rank-arrow">↓</td><td class="rn window-last-cell">2</td></tr><tr class="row-window  " style="--win-color: #EF9F27; --win-bg: rgba(250,238,218,.72); --arrow-color: #EF9F27;"><td class="window-first-cell">9</td><td><span class="pill goods">Goods</span></td><td>2026-05-24</td><td>4 452 956</td><td class="rank-arrow">↓</td><td class="rn window-last-cell">3</td></tr><tr class="row-window  " style="--win-color: #EF9F27; --win-bg: rgba(250,238,218,.72); --arrow-color: #EF9F27;"><td class="window-first-cell">15</td><td><span class="pill goods">Goods</span></td><td>2026-05-25</td><td>4 700 856</td><td class="rank-arrow">↓</td><td class="rn window-last-cell">4</td></tr><tr class="row-window  row-window-end" style="--win-color: #EF9F27; --win-bg: rgba(250,238,218,.72); --arrow-color: #EF9F27;"><td class="window-first-cell">13</td><td><span class="pill goods">Goods</span></td><td>2026-05-26</td><td>4 647 388</td><td class="rank-arrow">↓</td><td class="rn window-last-cell">5</td></tr><tr class="row-window row-window-start " style="--win-color: #639922; --win-bg: rgba(234,243,222,.78); --arrow-color: #639922;"><td class="window-first-cell">3</td><td><span class="pill realty">Realty</span></td><td>2026-05-22</td><td>416 259</td><td class="rank-arrow">↓</td><td class="rn window-last-cell">1</td></tr><tr class="row-window  " style="--win-color: #639922; --win-bg: rgba(234,243,222,.78); --arrow-color: #639922;"><td class="window-first-cell">4</td><td><span class="pill realty">Realty</span></td><td>2026-05-23</td><td>354 331</td><td class="rank-arrow">↓</td><td class="rn window-last-cell">2</td></tr><tr class="row-window  " style="--win-color: #639922; --win-bg: rgba(234,243,222,.78); --arrow-color: #639922;"><td class="window-first-cell">11</td><td><span class="pill realty">Realty</span></td><td>2026-05-24</td><td>368 190</td><td class="rank-arrow">↓</td><td class="rn window-last-cell">3</td></tr><tr class="row-window  " style="--win-color: #639922; --win-bg: rgba(234,243,222,.78); --arrow-color: #639922;"><td class="window-first-cell">10</td><td><span class="pill realty">Realty</span></td><td>2026-05-25</td><td>463 776</td><td class="rank-arrow">↓</td><td class="rn window-last-cell">4</td></tr><tr class="row-window  row-window-end" style="--win-color: #639922; --win-bg: rgba(234,243,222,.78); --arrow-color: #639922;"><td class="window-first-cell">2</td><td><span class="pill realty">Realty</span></td><td>2026-05-26</td><td>447 765</td><td class="rank-arrow">↓</td><td class="rn window-last-cell">5</td></tr><tr class="row-window row-window-start " style="--win-color: #1f6acb; --win-bg: rgba(230,241,251,.78); --arrow-color: #1f6acb;"><td class="window-first-cell">8</td><td><span class="pill transport">Transport</span></td><td>2026-05-22</td><td>485 472</td><td class="rank-arrow">↓</td><td class="rn window-last-cell">1</td></tr><tr class="row-window  " style="--win-color: #1f6acb; --win-bg: rgba(230,241,251,.78); --arrow-color: #1f6acb;"><td class="window-first-cell">1</td><td><span class="pill transport">Transport</span></td><td>2026-05-23</td><td>450 039</td><td class="rank-arrow">↓</td><td class="rn window-last-cell">2</td></tr><tr class="row-window  " style="--win-color: #1f6acb; --win-bg: rgba(230,241,251,.78); --arrow-color: #1f6acb;"><td class="window-first-cell">14</td><td><span class="pill transport">Transport</span></td><td>2026-05-24</td><td>476 028</td><td class="rank-arrow">↓</td><td class="rn window-last-cell">3</td></tr><tr class="row-window  " style="--win-color: #1f6acb; --win-bg: rgba(230,241,251,.78); --arrow-color: #1f6acb;"><td class="window-first-cell">12</td><td><span class="pill transport">Transport</span></td><td>2026-05-25</td><td>511 828</td><td class="rank-arrow">↓</td><td class="rn window-last-cell">4</td></tr><tr class="row-window  row-window-end" style="--win-color: #1f6acb; --win-bg: rgba(230,241,251,.78); --arrow-color: #1f6acb;"><td class="window-first-cell">6</td><td><span class="pill transport">Transport</span></td><td>2026-05-26</td><td>504 986</td><td class="rank-arrow">↓</td><td class="rn window-last-cell">5</td></tr></tbody>
+        </table>
+      </div>
+
+      <div id="summary" class="summary-box"><b>Итог:</b> каждая vertical — отдельное окно, а стрелка показывает направление ранжирования по event_date (ASC).</div>
+
+      <div class="cards">
+        <div id="card-plain" class="mini-card"><div class="mini-title">1. Только OVER()</div>Одно окно — вся таблица. Порядок строк как в исходных данных.</div>
+        <div id="card-part" class="mini-card"><div class="mini-title">2. PARTITION BY vertical</div>Отдельное окно для каждой vertical. Нумерация заново в каждой группе.</div>
+        <div id="card-part-order" class="mini-card active"><div class="mini-title">3. PARTITION + ORDER</div>Отдельные окна по vertical, внутри каждого — сортировка по дате.</div>
+        <div id="card-order" class="mini-card"><div class="mini-title">4. ORDER BY без PARTITION</div>Одно окно на всю таблицу, но строки ранжируются по дате.</div>
+      </div>
+
+      <div class="footnote"><b>Важно:</b> без ORDER BY порядок строк внутри окна лучше не считать гарантированным. Для учебной демонстрации здесь показан порядок исходной таблицы.</div>
+    </main>
+  </div>
+</div>
+
+<script>
+const data = [
+  {id:1, vertical:'Transport', event_date:'2026-05-23', contacts:450039},
+  {id:2, vertical:'Realty', event_date:'2026-05-26', contacts:447765},
+  {id:3, vertical:'Realty', event_date:'2026-05-22', contacts:416259},
+  {id:4, vertical:'Realty', event_date:'2026-05-23', contacts:354331},
+  {id:5, vertical:'Goods', event_date:'2026-05-23', contacts:4173397},
+  {id:6, vertical:'Transport', event_date:'2026-05-26', contacts:504986},
+  {id:7, vertical:'Goods', event_date:'2026-05-22', contacts:4440432},
+  {id:8, vertical:'Transport', event_date:'2026-05-22', contacts:485472},
+  {id:9, vertical:'Goods', event_date:'2026-05-24', contacts:4452956},
+  {id:10, vertical:'Realty', event_date:'2026-05-25', contacts:463776},
+  {id:11, vertical:'Realty', event_date:'2026-05-24', contacts:368190},
+  {id:12, vertical:'Transport', event_date:'2026-05-25', contacts:511828},
+  {id:13, vertical:'Goods', event_date:'2026-05-26', contacts:4647388},
+  {id:14, vertical:'Transport', event_date:'2026-05-24', contacts:476028},
+  {id:15, vertical:'Goods', event_date:'2026-05-25', contacts:4700856},
+];
+
+let usePartition = true;
+let useOrder = true;
+let direction = 'ASC';
+
+const colors = {
+  Goods: {cls:'goods', line:'#EF9F27', bg:'rgba(250,238,218,.72)', arrow:'#EF9F27'},
+  Realty: {cls:'realty', line:'#639922', bg:'rgba(234,243,222,.78)', arrow:'#639922'},
+  Transport: {cls:'transport', line:'#1f6acb', bg:'rgba(230,241,251,.78)', arrow:'#1f6acb'},
+  ALL: {cls:'', line:'#8B2FC9', bg:'rgba(247,244,255,.75)', arrow:'#8B2FC9'}
+};
+
+function fmt(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' ')}
+function dateCmp(a,b){return new Date(a.event_date)-new Date(b.event_date)}
+function verticalClass(v){return colors[v].cls}
+
+function modeKey(){
+  if(usePartition && useOrder) return 'part-order';
+  if(usePartition && !useOrder) return 'part';
+  if(!usePartition && useOrder) return 'order';
+  return 'plain';
+}
+
+function computeRows(){
+  let rows=[];
+  const groups = usePartition ? [...new Set(data.map(d=>d.vertical))] : ['ALL'];
+  groups.forEach(g=>{
+    let part = usePartition ? data.filter(d=>d.vertical===g) : [...data];
+    if(useOrder){
+      part.sort((a,b)=> direction==='ASC' ? dateCmp(a,b) || a.id-b.id : dateCmp(b,a) || a.id-b.id);
+    }
+    part.forEach((r,i)=> rows.push({...r, rn:i+1, group:g, pos:i, groupSize:part.length}));
+  });
+  if(!usePartition && !useOrder) return rows.sort((a,b)=>a.id-b.id);
+  if(usePartition && !useOrder) return rows.sort((a,b)=> a.vertical.localeCompare(b.vertical) || a.id-b.id);
+  if(usePartition && useOrder) return rows.sort((a,b)=> a.vertical.localeCompare(b.vertical) || (direction==='ASC' ? dateCmp(a,b) : dateCmp(b,a)) || a.id-b.id);
+  return rows;
+}
+
+function sqlHtml(){
+  let inner=[];
+  if(usePartition) inner.push(`<span class="kw">PARTITION BY</span> vertical`);
+  if(useOrder) inner.push(`<span class="kw">ORDER BY</span> event_date ${direction}`);
+  const over = inner.length ? `(\n        ${inner.join('\n        ')}\n    )` : '()';
+  return `<span class="kw">SELECT</span>\n    id,\n    vertical,\n    event_date,\n    contacts,\n    <span class="fn">ROW_NUMBER()</span> <span class="kw">OVER</span>${over} <span class="kw">AS</span> rn\n<span class="kw">FROM</span> tbl;`;
+}
+
+function explanation(){
+  const m=modeKey();
+  const dir = direction==='ASC' ? 'от ранней даты к поздней' : 'от поздней даты к ранней';
+  if(m==='plain') return '<b>OVER() пустой.</b><br>Вся таблица — одно большое окно. ROW_NUMBER() просто нумерует строки подряд. В реальном SQL без ORDER BY порядок лучше явно не считать гарантированным.';
+  if(m==='part') return '<b>Есть PARTITION BY vertical, но нет ORDER BY.</b><br>SQL делит таблицу на окна по vertical. В каждом окне нумерация начинается с 1. Порядок внутри окна не задан явно.';
+  if(m==='part-order') return `<b>Есть PARTITION BY и ORDER BY.</b><br>SQL делит таблицу на окна по vertical, а внутри каждого окна ранжирует строки по event_date: ${dir}.`;
+  return `<b>Есть ORDER BY, но нет PARTITION BY.</b><br>Вся таблица — одно окно. Строки ранжируются по event_date: ${dir}, без разделения на vertical.`;
+}
+
+function summary(){
+  const m=modeKey();
+  if(m==='plain') return '<b>Итог:</b> одно окно на всю таблицу. Нумерация идёт от 1 до 15.';
+  if(m==='part') return '<b>Итог:</b> окон несколько — по одному на каждую vertical. Поэтому номера повторяются: в Goods есть 1, в Realty есть 1, в Transport есть 1.';
+  if(m==='part-order') return `<b>Итог:</b> каждая vertical — отдельное окно, а стрелка показывает направление ранжирования по event_date (${direction}).`;
+  return `<b>Итог:</b> окно одно, но порядок задает event_date (${direction}). Номера идут по всей таблице, независимо от vertical.`;
+}
+
+function renderSource(){
+  let html='<thead><tr><th>id</th><th>vertical</th><th>event_date</th><th>contacts</th></tr></thead><tbody>';
+  data.forEach(r=>{
+    html+=`<tr><td>${r.id}</td><td><span class="pill ${verticalClass(r.vertical)}">${r.vertical}</span></td><td>${r.event_date}</td><td>${fmt(r.contacts)}</td></tr>`;
+  });
+  html+='</tbody>';
+  document.getElementById('source').innerHTML=html;
+}
+
+function renderResult(){
+  const rows=computeRows();
+  const tbody=document.getElementById('result');
+  tbody.innerHTML='';
+  rows.forEach(r=>{
+    const c = colors[usePartition ? r.vertical : 'ALL'];
+    const start = r.pos===0 ? 'row-window-start' : '';
+    const end = r.pos===r.groupSize-1 ? 'row-window-end' : '';
+    const arrow = useOrder ? (direction==='ASC' ? '↓' : '↑') : '·';
+    const tr=document.createElement('tr');
+    tr.className=`row-window ${start} ${end}`;
+    tr.style.setProperty('--win-color', c.line);
+    tr.style.setProperty('--win-bg', c.bg);
+    tr.style.setProperty('--arrow-color', c.arrow);
+    tr.innerHTML=`<td class="window-first-cell">${r.id}</td><td><span class="pill ${verticalClass(r.vertical)}">${r.vertical}</span></td><td>${r.event_date}</td><td>${fmt(r.contacts)}</td><td class="rank-arrow">${arrow}</td><td class="rn window-last-cell">${r.rn}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderCards(){
+  ['plain','part','part-order','order'].forEach(k=>document.getElementById('card-'+k).classList.remove('active'));
+  document.getElementById('card-'+modeKey()).classList.add('active');
+}
+
+function renderControls(){
+  document.getElementById('partSwitch').className='switch'+(usePartition?' on':'');
+  document.getElementById('orderSwitch').className='switch'+(useOrder?' on':'');
+  document.getElementById('partText').textContent=usePartition?'Включено':'Выключено';
+  document.getElementById('orderText').textContent=useOrder?'Включено':'Выключено';
+  document.getElementById('direction').disabled=!useOrder;
+  document.getElementById('direction').style.opacity=useOrder?1:.45;
+}
+
+function render(){
+  renderControls();
+  document.getElementById('sql').innerHTML=sqlHtml();
+  document.getElementById('explain').innerHTML=explanation();
+  document.getElementById('summary').innerHTML=summary();
+  renderResult();
+  renderCards();
+}
+function togglePartition(){usePartition=!usePartition;render()}
+function toggleOrder(){useOrder=!useOrder;render()}
+function setDirection(v){direction=v;render()}
+
+renderSource();
+render();
+</script>
+
+</body></html>

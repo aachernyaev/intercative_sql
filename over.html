@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<!-- saved from url=(0089)file:///Users/gvnezhivenko/Downloads/window_over_progression_interactive_widget_html.html -->
+<html lang="ru"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OVER() — как меняется оконная функция</title>
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f5f5f3;
+  padding: 24px;
+  color: #2c2c2a;
+}
+
+.wrapper {
+  max-width: 1450px;
+  margin: 0 auto;
+}
+
+.card {
+  background: white;
+  border-radius: 18px;
+  border: 1px solid #e5e4de;
+  padding: 28px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+}
+
+h1 {
+  font-size: 34px;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  color: #666;
+  margin-bottom: 28px;
+  line-height: 1.5;
+  font-size: 16px;
+}
+
+.tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid #d9d7cf;
+  background: white;
+  cursor: pointer;
+  transition: all .2s;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tab:hover {
+  background: #f8f8f6;
+}
+
+.tab.active {
+  background: #E6F1FB;
+  border-color: #85B7EB;
+  color: #0C447C;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 26px;
+}
+
+.left-panel {
+  background: #fafaf8;
+  border: 1px solid #eceae3;
+  border-radius: 16px;
+  padding: 20px;
+  height: fit-content;
+}
+
+.panel-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.main-panel {
+  border: 1px solid #eceae3;
+  border-radius: 16px;
+  padding: 22px;
+}
+
+.step-title {
+  font-size: 30px;
+  margin-bottom: 12px;
+}
+
+.explain {
+  background: #fff8e7;
+  border: 1px solid #efd79a;
+  color: #725100;
+  padding: 14px 16px;
+  border-radius: 12px;
+  margin-bottom: 22px;
+  line-height: 1.5;
+}
+
+.sql-box {
+  font-family: 'Courier New', monospace;
+  background: #f5f5f3;
+  border: 1px solid #e5e4de;
+  border-radius: 12px;
+  padding: 16px;
+  line-height: 1.8;
+  overflow-x: auto;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+
+.kw {
+  color: #185FA5;
+  font-weight: 700;
+}
+
+.func {
+  color: #8B2FC9;
+  font-weight: 700;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e4de;
+  color: #777;
+  font-size: 12px;
+}
+
+td {
+  padding: 11px 12px;
+  border-bottom: 1px solid #f0efe8;
+  transition: all .15s;
+}
+
+.vertical-a {
+  background: #E6F1FB;
+}
+
+.vertical-b {
+  background: #EAF3DE;
+}
+
+.vertical-c {
+  background: #FAEEDA;
+}
+
+.highlight {
+  background: #ede7fb !important;
+  font-weight: 700;
+  color: #4b2f8f;
+}
+
+.legend {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.legend-color {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+}
+
+.info-box {
+  margin-top: 24px;
+  background: #eef5ff;
+  border: 1px solid #cfe0fb;
+  border-radius: 12px;
+  padding: 16px;
+  line-height: 1.6;
+}
+
+.info-title {
+  font-weight: 700;
+  color: #0C447C;
+  margin-bottom: 8px;
+}
+
+.avg-cell {
+  font-weight: 700;
+  color: #0C447C;
+}
+
+.small-note {
+  margin-top: 20px;
+  background: #f7f4ff;
+  border: 1px solid #ddd1ff;
+  border-radius: 12px;
+  padding: 14px;
+  line-height: 1.5;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="card">
+
+    <h1>Как меняется OVER()</h1>
+    <div class="subtitle">
+      Берём одну и ту же оконную функцию <b>AVG(value)</b> и постепенно добавляем аргументы в OVER().
+      <br><br>
+      Смотрим, как из-за этого меняется логика вычислений.
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="setMode(&#39;plain&#39;)">1. OVER()</button>
+      <button class="tab" onclick="setMode(&#39;partition&#39;)">2. PARTITION BY</button>
+      <button class="tab" onclick="setMode(&#39;partition_order&#39;)">3. PARTITION + ORDER</button>
+      <button class="tab" onclick="setMode(&#39;order_only&#39;)">4. ORDER BY без PARTITION</button>
+    </div>
+
+    <div class="layout">
+
+      <div class="left-panel">
+        <div class="panel-title">Исходная таблица</div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>vertical</th>
+              <th>event_date</th>
+              <th>value</th>
+            </tr>
+          </thead>
+          <tbody id="sourceTable">
+      <tr>
+        <td class="vertical-a">A</td>
+        <td>2026-01-01</td>
+        <td>10</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-a">A</td>
+        <td>2026-01-03</td>
+        <td>20</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-a">A</td>
+        <td>2026-01-05</td>
+        <td>30</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-b">B</td>
+        <td>2026-01-02</td>
+        <td>100</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-b">B</td>
+        <td>2026-01-04</td>
+        <td>200</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-b">B</td>
+        <td>2026-01-06</td>
+        <td>300</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-c">C</td>
+        <td>2026-01-01</td>
+        <td>5</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-c">C</td>
+        <td>2026-01-04</td>
+        <td>15</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-c">C</td>
+        <td>2026-01-07</td>
+        <td>25</td>
+      </tr>
+    </tbody>
+        </table>
+
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-color vertical-a"></div>
+            Vertical A
+          </div>
+          <div class="legend-item">
+            <div class="legend-color vertical-b"></div>
+            Vertical B
+          </div>
+          <div class="legend-item">
+            <div class="legend-color vertical-c"></div>
+            Vertical C
+          </div>
+        </div>
+
+      </div>
+
+      <div class="main-panel">
+
+        <div class="step-title" id="title">OVER() — без аргументов</div>
+
+        <div class="explain" id="explain">SQL считает среднее сразу по всей таблице. Всё становится одним большим окном.</div>
+
+        <div class="sql-box" id="sql">
+<span class="kw">SELECT</span>
+    vertical,
+    event_date,
+    value,
+    <span class="func">AVG(value)</span> <span class="kw">OVER</span>() <span class="kw">AS</span> avg_value
+<span class="kw">FROM</span> tbl
+</div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>vertical</th>
+              <th>event_date</th>
+              <th>value</th>
+              <th>avg_value</th>
+            </tr>
+          </thead>
+          <tbody id="resultTable">
+      <tr>
+        <td class="vertical-a">A</td>
+        <td>2026-01-01</td>
+        <td>10</td>
+        <td class="avg-cell">78.33</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-a">A</td>
+        <td>2026-01-03</td>
+        <td>20</td>
+        <td class="avg-cell">78.33</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-a">A</td>
+        <td>2026-01-05</td>
+        <td>30</td>
+        <td class="avg-cell">78.33</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-b">B</td>
+        <td>2026-01-02</td>
+        <td>100</td>
+        <td class="avg-cell">78.33</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-b">B</td>
+        <td>2026-01-04</td>
+        <td>200</td>
+        <td class="avg-cell">78.33</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-b">B</td>
+        <td>2026-01-06</td>
+        <td>300</td>
+        <td class="avg-cell">78.33</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-c">C</td>
+        <td>2026-01-01</td>
+        <td>5</td>
+        <td class="avg-cell">78.33</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-c">C</td>
+        <td>2026-01-04</td>
+        <td>15</td>
+        <td class="avg-cell">78.33</td>
+      </tr>
+    
+      <tr>
+        <td class="vertical-c">C</td>
+        <td>2026-01-07</td>
+        <td>25</td>
+        <td class="avg-cell">78.33</td>
+      </tr>
+    </tbody>
+        </table>
+
+        <div class="info-box">
+          <div class="info-title">Что важно понять?</div>
+          <div id="summary">Одно окно = вся таблица. Поэтому среднее значение повторяется в каждой строке.</div>
+        </div>
+
+        <div class="small-note">
+          <b>Главная идея оконных функций:</b>
+          строки не схлопываются в группы, как при GROUP BY.
+          Вместо этого SQL оставляет каждую строку и добавляет вычисления рядом с ней.
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+const data = [
+  { vertical: 'A', event_date: '2026-01-01', value: 10 },
+  { vertical: 'A', event_date: '2026-01-03', value: 20 },
+  { vertical: 'A', event_date: '2026-01-05', value: 30 },
+
+  { vertical: 'B', event_date: '2026-01-02', value: 100 },
+  { vertical: 'B', event_date: '2026-01-04', value: 200 },
+  { vertical: 'B', event_date: '2026-01-06', value: 300 },
+
+  { vertical: 'C', event_date: '2026-01-01', value: 5 },
+  { vertical: 'C', event_date: '2026-01-04', value: 15 },
+  { vertical: 'C', event_date: '2026-01-07', value: 25 },
+];
+
+const descriptions = {
+  plain: {
+    title: 'OVER() — без аргументов',
+    explain: 'SQL считает среднее сразу по всей таблице. Всё становится одним большим окном.',
+    sql: `
+<span class="kw">SELECT</span>
+    vertical,
+    event_date,
+    value,
+    <span class="func">AVG(value)</span> <span class="kw">OVER</span>() <span class="kw">AS</span> avg_value
+<span class="kw">FROM</span> tbl
+`,
+    summary: 'Одно окно = вся таблица. Поэтому среднее значение повторяется в каждой строке.'
+  },
+
+  partition: {
+    title: 'PARTITION BY vertical',
+    explain: 'Теперь SQL делит строки на отдельные окна по vertical. Среднее считается внутри каждой vertical отдельно.',
+    sql: `
+<span class="kw">SELECT</span>
+    vertical,
+    event_date,
+    value,
+    <span class="func">AVG(value)</span> <span class="kw">OVER</span>(
+        <span class="kw">PARTITION BY</span> vertical
+    ) <span class="kw">AS</span> avg_value
+<span class="kw">FROM</span> tbl
+`,
+    summary: 'Каждая vertical — отдельное окно. Поэтому у разных групп появляется своё среднее значение.'
+  },
+
+  partition_order: {
+    title: 'PARTITION BY + ORDER BY',
+    explain: 'Теперь внутри каждой vertical строки ещё и сортируются по дате. Среднее начинает считаться накопительно.',
+    sql: `
+<span class="kw">SELECT</span>
+    vertical,
+    event_date,
+    value,
+    <span class="func">AVG(value)</span> <span class="kw">OVER</span>(
+        <span class="kw">PARTITION BY</span> vertical
+        <span class="kw">ORDER BY</span> event_date
+    ) <span class="kw">AS</span> avg_value
+<span class="kw">FROM</span> tbl
+`,
+    summary: 'SQL идёт сверху вниз внутри каждой vertical и постепенно расширяет окно.'
+  },
+
+  order_only: {
+    title: 'ORDER BY event_date без PARTITION BY',
+    explain: 'PARTITION BY исчезает. Теперь окно снова одно — вся таблица. Но строки сортируются по дате.',
+    sql: `
+<span class="kw">SELECT</span>
+    vertical,
+    event_date,
+    value,
+    <span class="func">AVG(value)</span> <span class="kw">OVER</span>(
+        <span class="kw">ORDER BY</span> event_date
+    ) <span class="kw">AS</span> avg_value
+<span class="kw">FROM</span> tbl
+`,
+    summary: 'Накопительное среднее считается уже по всей таблице целиком, без разделения на vertical.'
+  }
+};
+
+let mode = 'plain';
+
+function avg(arr) {
+  return arr.reduce((a,b) => a+b,0) / arr.length;
+}
+
+function calculateRows() {
+  if (mode === 'plain') {
+    const fullAvg = avg(data.map(d => d.value));
+
+    return data.map(r => ({
+      ...r,
+      avg_value: fullAvg.toFixed(2)
+    }));
+  }
+
+  if (mode === 'partition') {
+    return data.map(r => {
+      const grp = data.filter(x => x.vertical === r.vertical);
+
+      return {
+        ...r,
+        avg_value: avg(grp.map(g => g.value)).toFixed(2)
+      }
+    });
+  }
+
+  if (mode === 'partition_order') {
+    return data.map(r => {
+      const grp = data
+        .filter(x => x.vertical === r.vertical)
+        .sort((a,b) => new Date(a.event_date) - new Date(b.event_date));
+
+      const currentIndex = grp.findIndex(g =>
+        g.event_date === r.event_date && g.value === r.value
+      );
+
+      const values = grp.slice(0, currentIndex + 1).map(x => x.value);
+
+      return {
+        ...r,
+        avg_value: avg(values).toFixed(2)
+      }
+    });
+  }
+
+  if (mode === 'order_only') {
+    const sorted = [...data].sort((a,b) => new Date(a.event_date) - new Date(b.event_date));
+
+    return sorted.map((r, idx) => {
+      const values = sorted.slice(0, idx + 1).map(x => x.value);
+
+      return {
+        ...r,
+        avg_value: avg(values).toFixed(2)
+      }
+    });
+  }
+}
+
+function verticalClass(v) {
+  if (v === 'A') return 'vertical-a';
+  if (v === 'B') return 'vertical-b';
+  return 'vertical-c';
+}
+
+function renderSourceTable() {
+  const body = document.getElementById('sourceTable');
+
+  body.innerHTML = '';
+
+  data.forEach(r => {
+    body.innerHTML += `
+      <tr>
+        <td class="${verticalClass(r.vertical)}">${r.vertical}</td>
+        <td>${r.event_date}</td>
+        <td>${r.value}</td>
+      </tr>
+    `;
+  });
+}
+
+function render() {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+  const map = {
+    plain: 0,
+    partition: 1,
+    partition_order: 2,
+    order_only: 3
+  };
+
+  document.querySelectorAll('.tab')[map[mode]].classList.add('active');
+
+  const config = descriptions[mode];
+
+  document.getElementById('title').innerHTML = config.title;
+  document.getElementById('explain').innerHTML = config.explain;
+  document.getElementById('sql').innerHTML = config.sql;
+  document.getElementById('summary').innerHTML = config.summary;
+
+  const rows = calculateRows();
+
+  const body = document.getElementById('resultTable');
+  body.innerHTML = '';
+
+  rows.forEach(r => {
+    body.innerHTML += `
+      <tr>
+        <td class="${verticalClass(r.vertical)}">${r.vertical}</td>
+        <td>${r.event_date}</td>
+        <td>${r.value}</td>
+        <td class="avg-cell">${r.avg_value}</td>
+      </tr>
+    `;
+  });
+}
+
+function setMode(m) {
+  mode = m;
+  render();
+}
+
+renderSourceTable();
+render();
+</script>
+
+
+</body></html>

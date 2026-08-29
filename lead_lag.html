@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<!-- saved from url=(0097)file:///Users/gvnezhivenko/Downloads/lead_lag_over_interactive_widget_goods_transport_realty.html -->
+<html lang="ru"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEAD / LAG Interactive</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;padding:24px;color:#2c2c2a}
+.card{max-width:1500px;margin:0 auto;background:#fff;border:1px solid #e5e4de;border-radius:18px;padding:28px}
+h1{font-size:38px;margin-bottom:10px}
+.subtitle{color:#666;line-height:1.6;margin-bottom:24px}
+.controls{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.control{background:#fafaf8;border:1px solid #e5e4de;border-radius:14px;padding:16px;min-width:240px}
+label{display:block;font-size:13px;font-weight:700;margin-bottom:10px;color:#555}
+select,input{width:100%;padding:10px;border-radius:10px;border:1px solid #d7d5cf;background:white;font-size:14px}
+.layout{display:grid;grid-template-columns:320px 1fr;gap:24px}
+.panel{border:1px solid #eceae3;border-radius:16px;padding:20px}
+.panel-title{font-size:13px;font-weight:700;color:#666;margin-bottom:14px;text-transform:uppercase}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{padding:10px 12px;border-bottom:1px solid #e5e4de;text-align:left;color:#777;font-size:12px}
+td{padding:11px 12px;border-bottom:1px solid #f0efe8}
+.goods{background:#E6F1FB}.transport{background:#EAF3DE}.realty{background:#FAEEDA}
+.arrow{font-size:18px;font-weight:700;color:#185FA5}
+.result{font-weight:700;color:#8B2FC9}
+.sql{font-family:'Courier New',monospace;background:#f5f5f3;border:1px solid #e5e4de;border-radius:12px;padding:16px;line-height:1.8;margin-bottom:18px}
+.kw{color:#185FA5;font-weight:700}.func{color:#8B2FC9;font-weight:700}
+.note{margin-top:18px;background:#eef5ff;border:1px solid #cfe0fb;border-radius:12px;padding:14px;line-height:1.6}
+@media(max-width:1100px){.layout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>LEAD / LAG — как работают соседние строки</h1>
+<div class="subtitle">
+Всегда используем <b>PARTITION BY vertical</b> и <b>ORDER BY event_date</b>.<br>
+Меняйте направление сортировки и глубину LEAD/LAG, чтобы увидеть, как SQL ищет соседние строки внутри окна.
+</div>
+
+<div class="controls">
+<div class="control">
+<label>Функция</label>
+<select id="mode">
+<option value="lag">LAG()</option>
+<option value="lead">LEAD()</option>
+</select>
+</div>
+
+<div class="control">
+<label>Смещение (n)</label>
+<input type="number" id="offset" min="1" max="3" value="1">
+</div>
+
+<div class="control">
+<label>Направление ORDER BY</label>
+<select id="direction">
+<option value="asc">ASC</option>
+<option value="desc">DESC</option>
+</select>
+</div>
+</div>
+
+<div class="layout">
+<div class="panel">
+<div class="panel-title">Исходные данные</div>
+<table>
+<thead>
+<tr>
+<th>vertical</th>
+<th>event_date</th>
+<th>contacts</th>
+</tr>
+</thead>
+<tbody id="source"><tr>
+      <td class="goods">Goods</td>
+      <td>2026-01-01</td>
+      <td>12</td>
+    </tr><tr>
+      <td class="goods">Goods</td>
+      <td>2026-01-03</td>
+      <td>18</td>
+    </tr><tr>
+      <td class="goods">Goods</td>
+      <td>2026-01-05</td>
+      <td>25</td>
+    </tr><tr>
+      <td class="transport">Transport</td>
+      <td>2026-01-02</td>
+      <td>90</td>
+    </tr><tr>
+      <td class="transport">Transport</td>
+      <td>2026-01-04</td>
+      <td>130</td>
+    </tr><tr>
+      <td class="transport">Transport</td>
+      <td>2026-01-06</td>
+      <td>170</td>
+    </tr><tr>
+      <td class="realty">Realty</td>
+      <td>2026-01-01</td>
+      <td>40</td>
+    </tr><tr>
+      <td class="realty">Realty</td>
+      <td>2026-01-04</td>
+      <td>65</td>
+    </tr><tr>
+      <td class="realty">Realty</td>
+      <td>2026-01-07</td>
+      <td>95</td>
+    </tr></tbody>
+</table>
+
+<div class="note">
+<b>Как читать таблицу:</b><br><br>
+• Каждая vertical — отдельное окно (PARTITION BY)<br>
+• Стрелка показывает направление ORDER BY<br>
+• LEAD смотрит вперёд<br>
+• LAG смотрит назад
+</div>
+</div>
+
+<div class="panel">
+<div class="sql" id="sql">
+<span class="kw">SELECT</span><br>
+&nbsp;&nbsp;vertical,<br>
+&nbsp;&nbsp;event_date,<br>
+&nbsp;&nbsp;contacts,<br>
+&nbsp;&nbsp;<span class="func">LAG(contacts, 1)</span> <span class="kw">OVER</span>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">PARTITION BY</span> vertical<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">ORDER BY</span> event_date ASC<br>
+&nbsp;&nbsp;)<br>
+<span class="kw">FROM</span> tbl
+</div>
+
+<table>
+<thead>
+<tr>
+<th>vertical</th>
+<th>event_date</th>
+<th>contacts</th>
+<th>направление</th>
+<th id="resultTitle">LAG(contacts, 1)</th>
+</tr>
+</thead>
+<tbody id="result">
+      <tr>
+        <td class="goods">Goods</td>
+        <td>2026-01-01</td>
+        <td>12</td>
+        <td class="arrow">↑</td>
+        <td class="result">NULL</td>
+      </tr>
+    
+      <tr>
+        <td class="goods">Goods</td>
+        <td>2026-01-03</td>
+        <td>18</td>
+        <td class="arrow">↑</td>
+        <td class="result">12</td>
+      </tr>
+    
+      <tr>
+        <td class="goods">Goods</td>
+        <td>2026-01-05</td>
+        <td>25</td>
+        <td class="arrow">↑</td>
+        <td class="result">18</td>
+      </tr>
+    
+      <tr>
+        <td class="transport">Transport</td>
+        <td>2026-01-02</td>
+        <td>90</td>
+        <td class="arrow">↑</td>
+        <td class="result">NULL</td>
+      </tr>
+    
+      <tr>
+        <td class="transport">Transport</td>
+        <td>2026-01-04</td>
+        <td>130</td>
+        <td class="arrow">↑</td>
+        <td class="result">90</td>
+      </tr>
+    
+      <tr>
+        <td class="transport">Transport</td>
+        <td>2026-01-06</td>
+        <td>170</td>
+        <td class="arrow">↑</td>
+        <td class="result">130</td>
+      </tr>
+    
+      <tr>
+        <td class="realty">Realty</td>
+        <td>2026-01-01</td>
+        <td>40</td>
+        <td class="arrow">↑</td>
+        <td class="result">NULL</td>
+      </tr>
+    
+      <tr>
+        <td class="realty">Realty</td>
+        <td>2026-01-04</td>
+        <td>65</td>
+        <td class="arrow">↑</td>
+        <td class="result">40</td>
+      </tr>
+    
+      <tr>
+        <td class="realty">Realty</td>
+        <td>2026-01-07</td>
+        <td>95</td>
+        <td class="arrow">↑</td>
+        <td class="result">65</td>
+      </tr>
+    </tbody>
+</table>
+
+<div class="note" id="explain">
+<b>Что происходит?</b><br><br>
+SQL сначала делит данные на окна по <b>vertical</b>.<br>
+Потом сортирует строки внутри каждого окна по <b>event_date ASC</b>.<br><br>
+После этого функция <b>LAG</b> ищет строку на расстоянии <b>1</b> назад.
+</div>
+</div>
+</div>
+</div>
+
+<script>
+const data = [
+  { vertical: 'Goods', event_date: '2026-01-01', contacts: 12 },
+  { vertical: 'Goods', event_date: '2026-01-03', contacts: 18 },
+  { vertical: 'Goods', event_date: '2026-01-05', contacts: 25 },
+
+  { vertical: 'Transport', event_date: '2026-01-02', contacts: 90 },
+  { vertical: 'Transport', event_date: '2026-01-04', contacts: 130 },
+  { vertical: 'Transport', event_date: '2026-01-06', contacts: 170 },
+
+  { vertical: 'Realty', event_date: '2026-01-01', contacts: 40 },
+  { vertical: 'Realty', event_date: '2026-01-04', contacts: 65 },
+  { vertical: 'Realty', event_date: '2026-01-07', contacts: 95 },
+];
+
+function cls(v){
+  if(v==='Goods') return 'goods';
+  if(v==='Transport') return 'transport';
+  return 'realty';
+}
+
+function renderSource(){
+  const body=document.getElementById('source');
+  body.innerHTML='';
+  data.forEach(r=>{
+    body.innerHTML += `<tr>
+      <td class="${cls(r.vertical)}">${r.vertical}</td>
+      <td>${r.event_date}</td>
+      <td>${r.contacts}</td>
+    </tr>`;
+  })
+}
+
+function render(){
+  const mode=document.getElementById('mode').value;
+  const offset=+document.getElementById('offset').value;
+  const direction=document.getElementById('direction').value;
+
+  document.getElementById('resultTitle').innerText=`${mode.toUpperCase()}(contacts, ${offset})`;
+
+  document.getElementById('sql').innerHTML=`
+<span class="kw">SELECT</span><br>
+&nbsp;&nbsp;vertical,<br>
+&nbsp;&nbsp;event_date,<br>
+&nbsp;&nbsp;contacts,<br>
+&nbsp;&nbsp;<span class="func">${mode.toUpperCase()}(contacts, ${offset})</span> <span class="kw">OVER</span>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">PARTITION BY</span> vertical<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">ORDER BY</span> event_date ${direction.toUpperCase()}<br>
+&nbsp;&nbsp;)<br>
+<span class="kw">FROM</span> tbl
+`;
+
+  const grouped={};
+  data.forEach(r=>{
+    if(!grouped[r.vertical]) grouped[r.vertical]=[];
+    grouped[r.vertical].push({...r});
+  });
+
+  Object.values(grouped).forEach(arr=>{
+    arr.sort((a,b)=>{
+      if(direction==='asc') return new Date(a.event_date)-new Date(b.event_date);
+      return new Date(b.event_date)-new Date(a.event_date);
+    })
+  });
+
+  const result=[];
+
+  Object.entries(grouped).forEach(([vertical,rows])=>{
+    rows.forEach((r,idx)=>{
+      const target = mode==='lag'
+        ? rows[idx-offset]
+        : rows[idx+offset];
+
+      result.push({
+        ...r,
+        value: target ? target.contacts : 'NULL',
+        arrow: mode==='lag' ? '↑' : '↓'
+      })
+    })
+  })
+
+  const body=document.getElementById('result');
+  body.innerHTML='';
+
+  result.forEach(r=>{
+    body.innerHTML += `
+      <tr>
+        <td class="${cls(r.vertical)}">${r.vertical}</td>
+        <td>${r.event_date}</td>
+        <td>${r.contacts}</td>
+        <td class="arrow">${r.arrow}</td>
+        <td class="result">${r.value}</td>
+      </tr>
+    `;
+  })
+
+  document.getElementById('explain').innerHTML=`
+<b>Что происходит?</b><br><br>
+SQL сначала делит данные на окна по <b>vertical</b>.<br>
+Потом сортирует строки внутри каждого окна по <b>event_date ${direction.toUpperCase()}</b>.<br><br>
+После этого функция <b>${mode.toUpperCase()}</b> ищет строку на расстоянии <b>${offset}</b> ${mode==='lag'?'назад':'вперёд'}.
+`;
+}
+
+renderSource();
+render();
+
+document.getElementById('mode').addEventListener('change',render);
+document.getElementById('offset').addEventListener('input',render);
+document.getElementById('direction').addEventListener('change',render);
+</script>
+
+</body></html>

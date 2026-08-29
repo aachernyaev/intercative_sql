@@ -52,7 +52,6 @@
     <button class="op-btn active" id="btn-and" onclick="setMode('AND')">AND</button>
     <button class="op-btn" id="btn-or" onclick="setMode('OR')">OR</button>
     <button class="op-btn" id="btn-in" onclick="setMode('IN')">IN</button>
-    <button class="op-btn" id="btn-null" onclick="setMode('NULL')">NULL</button>
     <button class="op-btn" id="btn-parens" onclick="setMode('PARENS')">(OR) AND</button>
   </div>
   <div class="hint" id="hint"></div>
@@ -80,18 +79,15 @@ const rows = [
 ];
 
 const allReg = ['Москва','Чукотский АО','Краснодарский край'];
-const nullSubModes = ['!=', 'IS NULL', 'IS NOT NULL'];
-
 let mode = 'AND', cA = true, cB = true;
 let inSet = new Set(['Москва','Чукотский АО']);
-let nullSub = '!=';
 let withParens = false;
 
 const hints = {
   AND: 'Строка попадает в результат, только если <b>оба</b> условия выполняются одновременно. Кликни по условию, чтобы включить или выключить его.',
   OR:  'Строка попадает в результат, если выполняется <b>хотя бы одно</b> из условий. Сравни количество строк с режимом AND.',
   IN:  'Короткая замена множеству OR — проверяет, входит ли значение в список. Добавляй и убирай регионы из списка.',
-  NULL:'NULL — это отсутствие значения. Обычный оператор != не находит строки с NULL — для них нужен <b>IS NULL</b> или <b>IS NOT NULL</b>.<br><span class="warn">Частая ошибка: WHERE region != \'Москва\' пропустит строки с NULL!</span>',
+
   PARENS_OFF: '<b>AND выполняется раньше OR</b> — это приоритет операторов. Запрос читается как: все города Москвы ИЛИ (Чукотский АО с зарплатой > 85 000). Фильтр по зарплате к Москве не применяется!<br><span class="warn">Включи скобки и посмотри, как изменится результат.</span>',
   PARENS_ON:  'Скобки <b>меняют порядок выполнения</b>: сначала объединяем оба региона, потом применяем фильтр по зарплате к обоим. Результат другой — хотя условия те же самые.'
 };
@@ -111,11 +107,6 @@ function isMatch(r) {
   if (mode === 'IN') {
     if (r.isNull) return false;
     return inSet.has(r.region);
-  }
-  if (mode === 'NULL') {
-    if (nullSub === '!=')         return !r.isNull && r.region !== 'Москва';
-    if (nullSub === 'IS NULL')    return r.isNull;
-    if (nullSub === 'IS NOT NULL')return !r.isNull;
   }
   if (mode === 'PARENS') {
     if (r.isNull) return false;
@@ -146,14 +137,6 @@ function getSql() {
   if (mode === 'IN') {
     const list = [...inSet].map(r => val(`'${r}'`)).join(', ') || `<span style="opacity:.4">пусто</span>`;
     return `${kw('SELECT')} city, region, avg_salary\n${kw('FROM')}   my_table\n${kw('WHERE')}  region ${kw('IN')} (${list})`;
-  }
-  if (mode === 'NULL') {
-    if (nullSub === '!=')
-      return `${kw('SELECT')} city, region, avg_salary\n${kw('FROM')}   my_table\n${kw('WHERE')}  region ${kw('!=')} ${val("'Москва'")}\n\n${st('-- строки с NULL сюда не попадут!')}`;
-    if (nullSub === 'IS NULL')
-      return `${kw('SELECT')} city, region, avg_salary\n${kw('FROM')}   my_table\n${kw('WHERE')}  region ${kw('IS NULL')}`;
-    if (nullSub === 'IS NOT NULL')
-      return `${kw('SELECT')} city, region, avg_salary\n${kw('FROM')}   my_table\n${kw('WHERE')}  region ${kw('IS NOT NULL')}`;
   }
   if (mode === 'PARENS') {
     if (!withParens)
@@ -189,15 +172,6 @@ function render() {
       d.onclick = () => { inSet.has(reg) ? inSet.delete(reg) : inSet.add(reg); render(); };
       ch.appendChild(d);
     });
-  } else if (mode === 'NULL') {
-    nullSubModes.forEach(sub => {
-      const d = document.createElement('div');
-      const isOn = nullSub === sub;
-      d.className = 'chip' + (isOn ? (sub === '!=' ? ' on-warn' : ' on') : '');
-      d.innerHTML = `<span class="dot"></span>${sub === '!=' ? "region != 'Москва'" : 'region ' + sub}`;
-      d.onclick = () => { nullSub = sub; render(); };
-      ch.appendChild(d);
-    });
   } else if (mode === 'PARENS') {
     const d = document.createElement('div');
     d.className = 'chip' + (withParens ? ' on' : ' on-warn');
@@ -226,7 +200,7 @@ function render() {
 
 function setMode(m) {
   mode = m;
-  ['AND','OR','IN','NULL','PARENS'].forEach(x => {
+  ['AND','OR','IN','PARENS'].forEach(x => {
     const btn = document.getElementById('btn-' + x.toLowerCase());
     const isActive = x === m;
     btn.className = 'op-btn' + (isActive ? (m === 'NULL' ? ' active-warn' : (m === 'PARENS' ? ' active-warn' : ' active')) : '');

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Оператор LIKE — тренажёр</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .card { background: #fff; border-radius: 16px; border: 1px solid #e5e4de; padding: 2rem; width: 100%; max-width: 700px; }
+
+  /* ── Preset tabs ── */
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  .preset-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid #d3d1c7; background: transparent; color: #2c2c2a; font-size: 13px; font-family: 'Courier New', monospace; cursor: pointer; transition: all .15s; }
+  .preset-btn:hover { background: #f5f5f3; }
+  .preset-btn.active { background: #E6F1FB; color: #0C447C; border-color: #85B7EB; font-weight: 600; }
+
+  /* ── Hint ── */
+  .hint { font-size: 13px; color: #5f5e5a; padding: 8px 0 14px; line-height: 1.65; min-height: 42px; }
+  .hint b { color: #2c2c2a; }
+  .badge { display:inline-block; border-radius:5px; padding:1px 7px; font-size:12px; font-weight:600; font-family:'Courier New',monospace; }
+  .badge-blue   { background:#E6F1FB; color:#0C447C; }
+  .badge-green  { background:#EAF3DE; color:#27500A; }
+  .badge-red    { background:#FDE8E8; color:#7C1414; }
+  .badge-yellow { background:#FAEEDA; color:#633806; }
+
+  /* ── Pattern builder ── */
+  .builder { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .builder-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .builder-label { font-size: 11px; font-weight: 600; color: #888780; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 2px; }
+
+  /* lower() toggle */
+  .lower-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
+    padding: 7px 12px; border-radius: 8px; border: 1px solid #d3d1c7; background: #fafaf8; transition: all .15s; }
+  .lower-toggle:hover { border-color: #b4b2a9; background: #f5f5f3; }
+  .lower-toggle.active { border-color: #85B7EB; background: #E6F1FB; }
+  .toggle-box { width: 30px; height: 16px; border-radius: 8px; background: #d3d1c7; position: relative; transition: background .2s; flex-shrink: 0; }
+  .toggle-box.on { background: #185FA5; }
+  .toggle-knob { width: 12px; height: 12px; border-radius: 50%; background: #fff; position: absolute; top: 2px; left: 2px; transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+  .toggle-box.on .toggle-knob { left: 16px; }
+  .toggle-label { font-size: 13px; font-family: 'Courier New', monospace; color: #5f5e5a; font-weight: 600; white-space: nowrap; }
+  .lower-toggle.active .toggle-label { color: #0C447C; }
+
+  /* pattern field */
+  .pattern-row { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 200px; }
+  .pattern-kw { font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700;
+    color: #185FA5; flex-shrink: 0; }
+  .pattern-field { display: inline-flex; align-items: center;
+    background: #fff; border: 1.5px solid #d3d1c7; border-radius: 8px;
+    padding: 0 10px; height: 38px; gap: 0; transition: border-color .15s, box-shadow .15s;
+    cursor: text; min-width: 160px; }
+  .pattern-field:focus-within { border-color: #85B7EB; box-shadow: 0 0 0 3px #E6F1FB; }
+  .pattern-field .pf-quote { font-family: 'Courier New', monospace; font-size: 15px;
+    color: #3B6D11; font-weight: 600; flex-shrink: 0; line-height: 1; }
+  .pattern-input { font-family: 'Courier New', monospace; font-size: 14px; color: #2c2c2a;
+    border: none; background: transparent; outline: none; width: 120px; min-width: 20px;
+    padding: 0 2px; }
+  .pattern-input::placeholder { color: #c5c3ba; font-style: italic; font-size: 13px; }
+  /* Hidden sizer to measure text width */
+  .input-sizer { position: fixed; top: -9999px; left: -9999px; visibility: hidden; white-space: pre;
+    font-family: 'Courier New', monospace; font-size: 14px; padding: 0 2px; pointer-events: none; }
+
+  /* ── SQL box ── */
+  .sql-box { font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.9; padding: 14px 16px; background: #1e1e2e; border-radius: 10px; margin-bottom: 14px; white-space: pre; overflow-x: auto; color: #cdd6f4; }
+  .kw   { color: #89b4fa; }
+  .fn   { color: #fab387; }
+  .val  { color: #a6e3a1; }
+  .pat  { color: #f9e2af; font-weight: 600; }
+  .pct  { color: #cba6f7; }
+
+  /* ── Wildcard chips ── */
+  .wildcards { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .wc-chip { display: flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 7px; font-size: 12px; cursor: pointer; border: 1px solid transparent; transition: all .15s; user-select: none; }
+  .wc-chip:hover { opacity: .85; }
+  .wc-chip .wc-key { font-family: 'Courier New', monospace; font-weight: 700; font-size: 13px; }
+  .wc-pct  { background: #F0EAF8; border-color: #C9A8E8; color: #5B2D8E; }
+  .wc-und  { background: #FFF3CD; border-color: #E8C96C; color: #6B4900; }
+  .wc-chip.wc-active-pct { background: #5B2D8E; color: #fff; border-color: #5B2D8E; }
+  .wc-chip.wc-active-und { background: #8a6200; color: #fff; border-color: #8a6200; }
+
+  /* ── Table ── */
+  .count { font-size: 12px; color: #888780; margin-bottom: 8px; }
+  .tbl-wrap { border-radius: 10px; overflow: hidden; border: 1px solid #e5e4de; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 12px; font-size: 11px; color: #888780; font-weight: 500; border-bottom: 1px solid #e5e4de; background: #fafaf8; }
+  td { padding: 8px 12px; border-bottom: 1px solid #f0efe8; color: #2c2c2a; transition: background .2s, opacity .2s; }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { color: #b4b2a9; font-size: 11px; width: 28px; }
+  td.match-cell { font-weight: 500; }
+
+  tr.row-match td { background: #EAF3DE; }
+  tr.row-match td:nth-child(2) { color: #27500A; }
+  tr.row-match td:first-child { border-left: 3px solid #639922; padding-left: 9px; color: #639922; }
+  tr.row-dim td { opacity: .18; }
+
+  mark { background: #d6edbc; color: #1e4d00; border-radius: 3px; padding: 0 1px; font-weight: 700; }
+  .case-miss mark { background: #FDE8E8; color: #7C1414; }
+
+  /* ── Case sensitivity warning ── */
+  .case-warn { font-size: 12px; color: #633806; background: #FAEEDA; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; display: none; }
+  .case-warn b { font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- Preset examples -->
+  <div class="presets" id="presets">
+    <button class="preset-btn active" onclick="applyPreset(0)">LIKE 'Кот'</button>
+    <button class="preset-btn"        onclick="applyPreset(1)">lower() LIKE 'кот'</button>
+    <button class="preset-btn"        onclick="applyPreset(2)">LIKE '%вязк%'</button>
+    <button class="preset-btn"        onclick="applyPreset(3)">LIKE '%в_слоух%'</button>
+  </div>
+
+  <div class="hint" id="hint"></div>
+
+  <!-- Pattern builder -->
+  <div class="builder">
+    <div class="builder-label">Настрой запрос</div>
+    <div class="builder-row">
+      <div class="lower-toggle" id="lower-toggle" onclick="toggleLower()">
+        <div class="toggle-box" id="toggle-box"><div class="toggle-knob"></div></div>
+        <span class="toggle-label" id="toggle-label">lower( column )</span>
+      </div>
+      <div class="pattern-row">
+        <span class="pattern-kw">LIKE</span>
+        <div class="pattern-field" onclick="document.getElementById('pattern-input').focus()">
+          <span class="pf-quote">'</span>
+          <input class="pattern-input" id="pattern-input" oninput="onPatternInput()" placeholder="введи паттерн" spellcheck="false" />
+          <span class="pf-quote">'</span>
+        </div>
+        <span class="input-sizer" id="input-sizer"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wildcard helpers -->
+  <div class="wildcards">
+    <div class="wc-chip wc-pct" id="wc-pct" onmousedown="insertWildcard(event,'%')">
+      <span class="wc-key">%</span> — любые символы (0 или больше)
+    </div>
+    <div class="wc-chip wc-und" id="wc-und" onmousedown="insertWildcard(event,'_')">
+      <span class="wc-key">_</span> — ровно один символ
+    </div>
+  </div>
+
+  <!-- SQL preview -->
+  <div class="sql-box" id="sql"></div>
+
+  <!-- Case warning -->
+  <div class="case-warn" id="case-warn">
+    ⚠ <b>Без lower():</b> пропущены строки с другим регистром — <span id="missed-hint"></span>
+  </div>
+
+  <!-- Result table -->
+  <div class="count" id="count"></div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>#</th><th>title</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const listings = [
+  {id:1,  title:'Кот'},
+  {id:2,  title:'Кот вязка'},
+  {id:3,  title:'кот породистый'},
+  {id:4,  title:'КОТ шотландский'},
+  {id:5,  title:'Котёнок продам'},
+  {id:6,  title:'Вислоухий кот вязка'},
+  {id:7,  title:'Веслоухий котёнок'},
+  {id:8,  title:'Шотландский вислоухий'},
+  {id:9,  title:'ВИСЛОУХИЙ шотландец'},
+  {id:10, title:'Мейн-кун вязка'},
+  {id:11, title:'Персидская кошка'},
+  {id:12, title:'Сфинкс, мальчик'},
+];
+
+const presets = [
+  { lower: false, pattern: 'Кот',       activePreset: 0 },
+  { lower: true,  pattern: 'кот',       activePreset: 1 },
+  { lower: true,  pattern: '%вязк%',    activePreset: 2 },
+  { lower: true,  pattern: '%в_слоух%', activePreset: 3 },
+];
+
+const hints = [
+  '<b>Без wildcards:</b> LIKE работает как <span class="badge badge-red">=</span> — ищет <b>точное совпадение</b>, чувствительно к регистру. Только строка, которая полностью равна <span class="badge badge-blue">Кот</span>, пройдёт фильтр.',
+  '<b>lower() снимает регистр:</b> теперь <span class="badge badge-green">Кот</span>, <span class="badge badge-green">кот</span>, <span class="badge badge-green">КОТ</span> — одно и то же. Без % всё ещё ищем точное слово, но уже без оглядки на заглавные буквы.',
+  '<b>% — любые символы:</b> <span class="badge badge-blue">%вязк%</span> означает «перед "вязк" может быть что угодно, и после — тоже». Находим все объявления, где в названии встречается корень слова вязка/вязку/вязкой.',
+  '<b>_ — ровно один символ:</b> <span class="badge badge-blue">%в_слоух%</span> ловит и <span class="badge badge-green">вислоух</span>, и <span class="badge badge-green">веслоух</span> одним паттерном. Экономим запрос вместо двух OR-условий.',
+];
+
+let useLower = false;
+let pattern  = 'Кот';
+let curPreset = 0;
+
+// ── LIKE → RegExp ────────────────────────────────
+function likeToRegex(pat, caseInsensitive) {
+  const escaped = pat.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*').replace(/_/g, '.');
+  return new RegExp('^' + escaped + '$', caseInsensitive ? 'i' : '');
+}
+
+function matches(row) {
+  const text = useLower ? row.title.toLowerCase() : row.title;
+  const pat  = useLower ? pattern.toLowerCase()   : pattern;
+  return likeToRegex(pat, false).test(text);
+}
+
+// ── Highlight matched portion ────────────────────
+function highlight(text, pat, lower) {
+  let inner = lower ? pat.toLowerCase() : pat;
+  const trimmed = inner.replace(/^%+/, '').replace(/%+$/, '');
+  if (!trimmed) return text;
+  const innerRegex = trimmed
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/%/g, '[\\s\\S]*?')
+    .replace(/_/g, '.');
+  try {
+    return text.replace(new RegExp('(' + innerRegex + ')', lower ? 'gi' : 'g'),
+      '<mark>$1</mark>');
+  } catch(e) { return text; }
+}
+
+// ── SQL builder ──────────────────────────────────
+function getSql() {
+  const kw  = s => `<span class="kw">${s}</span>`;
+  const fn  = s => `<span class="fn">${s}</span>`;
+  const val = s => `<span class="val">${s}</span>`;
+  const pat = s => `<span class="pat">${s}</span>`;
+
+  const col = useLower
+    ? `${fn('lower')}(title)`
+    : `title`;
+
+  const rawPat = pattern || '';
+  const dispPat = rawPat
+    .replace(/%/g, `<span class="pct">%</span>`)
+    .replace(/_/g, `<span style="color:#f9e2af;font-weight:700">_</span>`);
+
+  return `${kw('SELECT')} id, title\n${kw('FROM')}   listings\n${kw('WHERE')}  ${col} ${kw('LIKE')} ${pat("'" + dispPat + "'")}`;
+}
+
+// ── Render ───────────────────────────────────────
+function render() {
+  // SQL
+  document.getElementById('sql').innerHTML = getSql();
+
+  // Toggle state
+  const tb = document.getElementById('toggle-box');
+  const tl = document.getElementById('toggle-label');
+  const lt = document.getElementById('lower-toggle');
+  tb.className = 'toggle-box' + (useLower ? ' on' : '');
+  lt.className = 'lower-toggle' + (useLower ? ' active' : '');
+
+  // Wildcard highlight in chips
+  const hasPct = pattern.includes('%');
+  const hasUnd = pattern.includes('_');
+  document.getElementById('wc-pct').className = 'wc-chip wc-pct' + (hasPct ? ' wc-active-pct' : '');
+  document.getElementById('wc-und').className = 'wc-chip wc-und' + (hasUnd ? ' wc-active-und' : '');
+
+  // Case-sensitivity warning
+  const caseWarn = document.getElementById('case-warn');
+  const missedHint = document.getElementById('missed-hint');
+  if (!useLower && pattern.length > 0) {
+    // Check if enabling lower() would find more rows
+    const withLower = listings.filter(r => {
+      const t = r.title.toLowerCase();
+      const p = pattern.toLowerCase();
+      return likeToRegex(p, false).test(t);
+    });
+    const withoutLower = listings.filter(r => matches(r));
+    if (withLower.length > withoutLower.length) {
+      caseWarn.style.display = 'block';
+      const missed = withLower.filter(r => !withoutLower.includes(r)).map(r => `"${r.title}"`).join(', ');
+      missedHint.textContent = `нет совпадений для ${missed}`;
+    } else {
+      caseWarn.style.display = 'none';
+    }
+  } else {
+    caseWarn.style.display = 'none';
+  }
+
+  // Rows
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  let cnt = 0;
+  listings.forEach(r => {
+    const isMatch = matches(r);
+    if (isMatch) cnt++;
+    const tr = document.createElement('tr');
+    tr.className = isMatch ? 'row-match' : 'row-dim';
+    const displayText = isMatch ? highlight(r.title, pattern, useLower) : r.title;
+    tr.innerHTML = `<td>${r.id}</td><td class="${isMatch ? 'match-cell' : ''}">${displayText}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('count').textContent =
+    cnt > 0
+      ? `Совпадений: ${cnt} из ${listings.length} строк`
+      : `Совпадений нет — измени паттерн или включи lower()`;
+}
+
+// ── Controls ──────────────────────────────────────
+function toggleLower() {
+  useLower = !useLower;
+  curPreset = -1;
+  updatePresetBtns();
+  render();
+}
+
+function resizeInput() {
+  const inp = document.getElementById('pattern-input');
+  const sizer = document.getElementById('input-sizer');
+  sizer.textContent = inp.value || inp.getAttribute('placeholder');
+  inp.style.width = Math.max(sizer.offsetWidth + 8, 20) + 'px';
+}
+
+function onPatternInput() {
+  pattern = document.getElementById('pattern-input').value;
+  resizeInput();
+  curPreset = -1;
+  updatePresetBtns();
+  render();
+}
+
+function applyPreset(i) {
+  const p = presets[i];
+  useLower = p.lower;
+  pattern  = p.pattern;
+  curPreset = i;
+  document.getElementById('pattern-input').value = pattern;
+  document.getElementById('hint').innerHTML = hints[i];
+  resizeInput();
+  updatePresetBtns();
+  render();
+}
+
+function updatePresetBtns() {
+  document.querySelectorAll('.preset-btn').forEach((btn, i) => {
+    btn.className = 'preset-btn' + (i === curPreset ? ' active' : '');
+  });
+}
+
+function insertWildcard(e, char) {
+  e.preventDefault(); // keep focus on the input
+  const inp = document.getElementById('pattern-input');
+  const start = inp.selectionStart ?? pattern.length;
+  const end   = inp.selectionEnd   ?? pattern.length;
+  pattern = pattern.slice(0, start) + char + pattern.slice(end);
+  inp.value = pattern;
+  resizeInput();
+  requestAnimationFrame(() => {
+    inp.focus();
+    inp.setSelectionRange(start + 1, start + 1);
+  });
+  curPreset = -1;
+  updatePresetBtns();
+  render();
+}
+
+// Init
+document.getElementById('pattern-input').value = pattern;
+document.getElementById('hint').innerHTML = hints[0];
+resizeInput();
+render();
+</script>
+</body>
+</html>

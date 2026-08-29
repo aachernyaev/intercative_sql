@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CASE WHEN — тренажёр</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .card { background: #fff; border-radius: 16px; border: 1px solid #e5e4de; padding: 2rem; width: 100%; max-width: 740px; }
+
+  /* ── Mode tabs ── */
+  .mode-tabs { display: flex; gap: 0; margin-bottom: 6px; border-radius: 10px; overflow: hidden; border: 1px solid #e5e4de; }
+  .mode-btn { flex: 1; padding: 9px 6px; font-size: 12.5px; border: none; background: #fafaf8; color: #888780; cursor: pointer; transition: all .15s; border-right: 1px solid #e5e4de; line-height: 1.3; }
+  .mode-btn:last-child { border-right: none; }
+  .mode-btn:hover { background: #f0efe8; }
+  .mode-btn.active { background: #E6F1FB; color: #0C447C; font-weight: 600; }
+
+  /* ── Hint ── */
+  .hint { font-size: 13px; color: #5f5e5a; padding: 8px 0 14px; line-height: 1.65; min-height: 40px; }
+  .hint b { color: #2c2c2a; }
+  .tag { display:inline-block; border-radius:5px; padding:1px 7px; font-size:12px; font-weight:600; }
+  .tag-blue   { background:#E6F1FB; color:#0C447C; }
+  .tag-green  { background:#EAF3DE; color:#27500A; }
+  .tag-yellow { background:#FAEEDA; color:#633806; }
+  .tag-purple { background:#F0EAF8; color:#5B2D8E; }
+
+  /* ── SQL box ── */
+  .sql-box { font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.85; padding: 14px 16px; background: #1e1e2e; border-radius: 10px; margin-bottom: 16px; white-space: pre; overflow-x: auto; color: #cdd6f4; }
+  .kw   { color: #89b4fa; font-weight: 600; }
+  .fn   { color: #fab387; }
+  .val  { color: #a6e3a1; }
+  .cmt  { color: #6c7086; font-style: italic; }
+  .hl   { color: #f9e2af; font-weight: 700; }
+
+  /* ── Slider (mode 1) ── */
+  .slider-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 10px 14px; background: #f5f5f3; border-radius: 10px; border: 1px solid #e5e4de; }
+  .slider-label { font-size: 13px; color: #5f5e5a; white-space: nowrap; }
+  .slider-label b { font-family: 'Courier New', monospace; font-size: 14px; color: #0C447C; font-weight: 700; }
+  input[type=range] { flex: 1; accent-color: #185FA5; }
+  .slider-val { font-family: 'Courier New', monospace; font-size: 15px; font-weight: 700; color: #185FA5; min-width: 36px; text-align: right; }
+
+  /* ── Condition chips (mode 2) ── */
+  .conditions { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .cond-chip { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; border: 1.5px solid #e5e4de; cursor: pointer; user-select: none; transition: all .15s; background: #fafaf8; }
+  .cond-chip:hover { border-color: #b4b2a9; }
+  .cond-num  { font-size: 10px; font-weight: 700; color: #b4b2a9; min-width: 44px; }
+  .cond-code { font-family: 'Courier New', monospace; font-size: 12px; flex: 1; color: #5f5e5a; }
+  .cond-then { font-family: 'Courier New', monospace; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+  .cond-toggle { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #d3d1c7; flex-shrink: 0; transition: all .15s; }
+  .cond-chip.on .cond-toggle { background: #185FA5; border-color: #185FA5; }
+  .cond-chip.on { border-color: currentColor; background: #fff; }
+
+  /* breed colors */
+  .breed-scot  { color: #0C447C; background: #E6F1FB; border-color: #85B7EB; }
+  .breed-brit  { color: #5B2D8E; background: #F0EAF8; border-color: #C9A8E8; }
+  .breed-beng  { color: #7A3B00; background: #FEF0E0; border-color: #F4A94A; }
+  .breed-main  { color: #27500A; background: #EAF3DE; border-color: #88C043; }
+  .breed-other { color: #5f5e5a; background: #f5f5f3; border-color: #d3d1c7; }
+
+  /* ── Adjective toggles (mode 3) ── */
+  .adj-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .adj-btn { padding: 6px 14px; border-radius: 8px; border: 1.5px solid #d3d1c7; background: #fafaf8; color: #5f5e5a; font-size: 13px; cursor: pointer; transition: all .15s; font-family: inherit; }
+  .adj-btn:hover { border-color: #b4b2a9; }
+  .adj-btn.on { background: #EAF3DE; color: #27500A; border-color: #88C043; font-weight: 600; }
+
+  /* ── Table ── */
+  .count { font-size: 12px; color: #888780; margin-bottom: 8px; }
+  .tbl-wrap { border-radius: 10px; overflow: hidden; border: 1px solid #e5e4de; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { text-align: left; padding: 7px 10px; font-size: 11px; color: #888780; font-weight: 500; border-bottom: 1px solid #e5e4de; background: #fafaf8; white-space: nowrap; }
+  td { padding: 7px 10px; border-bottom: 1px solid #f0efe8; color: #2c2c2a; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  td.id-cell { color: #b4b2a9; font-size: 11px; width: 24px; }
+  td.pv-cell { font-family: 'Courier New', monospace; font-size: 12px; }
+  td.type-cell { font-weight: 600; padding: 4px 10px; }
+  td.desc-cell { color: #5f5e5a; font-size: 12px; max-width: 240px; }
+
+  tr.pop   td.type-cell { background: #EAF3DE; color: #27500A; }
+  tr.unpop td.type-cell { background: #f5f5f3; color: #b4b2a9; }
+  tr.unpop { opacity: .55; }
+
+  .badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; vertical-align: middle; }
+  .when-badge { display: inline-block; font-size: 11px; font-weight: 700; font-family: 'Courier New', monospace;
+    padding: 3px 10px; border-radius: 6px; border: 1.5px solid currentColor; }
+
+  /* progress bar for mode 3 */
+  .pbar-wrap { display: flex; align-items: center; gap: 6px; }
+  .pbar { height: 6px; border-radius: 3px; background: #EAF3DE; flex-shrink: 0; transition: width .3s; }
+  .pbar-val { font-size: 12px; font-family: 'Courier New', monospace; color: #5f5e5a; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <div class="mode-tabs">
+    <button class="mode-btn active" onclick="setMode(0)">Одно условие</button>
+    <button class="mode-btn"        onclick="setMode(1)">Несколько условий</button>
+    <button class="mode-btn"        onclick="setMode(2)">CASE в агрегации</button>
+  </div>
+
+  <div class="hint" id="hint"></div>
+  <div class="sql-box" id="sql"></div>
+  <div id="controls"></div>
+  <div class="count" id="count"></div>
+  <div class="tbl-wrap"><table id="result-table"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+
+</div>
+<script>
+// ── Data ────────────────────────────────────────
+const items = [
+  {id:1,  pv:11,  desc:'Британский кот ищет невесту для вязки, красивый и умный'},
+  {id:2,  pv:2,   desc:'Молодой шотландский вислоухий, добрый и ласковый'},
+  {id:3,  pv:3,   desc:'Кот британец, очень красивый'},
+  {id:4,  pv:130, desc:'Бенгальская кошка ищет жениха, умная и красивая'},
+  {id:5,  pv:9,   desc:'Шотландский кот, умный'},
+  {id:6,  pv:25,  desc:'Мейн-кун котёнок, ласковый и красивый'},
+  {id:7,  pv:7,   desc:'Бенгальский кот, красивый и добрый'},
+  {id:8,  pv:45,  desc:'Шотландский, добрый и ласковый кот'},
+  {id:9,  pv:15,  desc:'Британская кошка, красивая, умная и добрая'},
+  {id:10, pv:4,   desc:'Мейн-кун, красивый котёнок, очень добрый'},
+];
+
+const hints = [
+  '<b>CASE WHEN</b> создаёт новое поле для каждой строки. Двигай ползунок — граница между <span class="tag tag-green">Популярное</span> и <span class="tag breed-other">Непопулярное</span> смещается в реальном времени.',
+  '<b>Несколько WHEN</b> проверяются строго по порядку — первое совпадение выигрывает, остальные не проверяются. Отключай условия и смотри, как строки «падают» в <span class="tag breed-other">Другая</span>.',
+  '<span class="tag tag-blue">AVG(CASE WHEN … THEN 1 ELSE 0 END) × 100</span> — это доля строк, где условие сработало, в процентах. Включай и выключай прилагательные, чтобы видеть статистику по каждой породе.',
+];
+
+const breeds = [
+  { key:'scot', kw:'%шотлан%', label:'Шотландская', cls:'breed-scot', whenNum:1 },
+  { key:'brit', kw:'%британ%', label:'Британская',  cls:'breed-brit', whenNum:2 },
+  { key:'beng', kw:'%бенгал%', label:'Бенгальская', cls:'breed-beng', whenNum:3 },
+  { key:'main', kw:'%мейн%',   label:'Мейн-кун',    cls:'breed-main', whenNum:4 },
+];
+const adjs = [
+  { key:'kras', kw:'%красив%', label:'красивый' },
+  { key:'smrt', kw:'%умн%',    label:'умный'    },
+  { key:'lask', kw:'%ласков%', label:'ласковый' },
+  { key:'dobr', kw:'%добр%',   label:'добрый'   },
+];
+
+let mode = 0;
+let threshold = 10;
+let breedOn = { scot:true, brit:true, beng:true, main:true };
+let adjOn   = { kras:true, smrt:true, lask:true, dobr:true };
+
+// ── Helpers ─────────────────────────────────────
+const kw  = s => `<span class="kw">${s}</span>`;
+const fn  = s => `<span class="fn">${s}</span>`;
+const val = s => `<span class="val">'${s}'</span>`;
+const hl  = s => `<span class="hl">${s}</span>`;
+const cmt = s => `<span class="cmt">${s}</span>`;
+
+function likeMatch(kw, text) {
+  const pat = kw.replace(/^%+/, '').replace(/%+$/, '');
+  return text.toLowerCase().includes(pat);
+}
+
+function getBreed(item) {
+  for (const b of breeds) {
+    if (breedOn[b.key] && likeMatch(b.kw, item.desc)) return b;
+  }
+  return { key:'other', label:'Другая', cls:'breed-other', whenNum: null };
+}
+
+// ── SQL builders ─────────────────────────────────
+function sqlMode0() {
+  return `${kw('SELECT')}\n  item_id,\n  pv_all,\n  ${kw('CASE')}\n    ${kw('WHEN')} pv_all ${hl('>')} ${hl(threshold)} ${kw('THEN')} ${val('Популярное')}\n    ${kw('ELSE')} ${val('Непопулярное')}\n  ${kw('END')} ${kw('AS')} item_type\n${kw('FROM')} table`;
+}
+
+function sqlMode1() {
+  const activeBreeds = breeds.filter(b => breedOn[b.key]);
+  const lines = activeBreeds.map(b =>
+    `    ${kw('WHEN')} ${fn('lower')}(description) ${kw('LIKE')} ${val(b.kw)} ${kw('THEN')} ${val(b.label)}`
+  );
+  if (activeBreeds.length < breeds.length) lines.push(`    ${cmt('-- выключенные условия пропущены')}`);
+  lines.push(`    ${kw('ELSE')} ${val('Другая')}`);
+  return `${kw('SELECT')}\n  item_id, description,\n  ${kw('CASE')}\n${lines.join('\n')}\n  ${kw('END')} ${kw('AS')} cat_breed\n${kw('FROM')} table`;
+}
+
+function sqlMode2() {
+  const activeAdjs = adjs.filter(a => adjOn[a.key]);
+  const adjLines = activeAdjs.map(a =>
+    `  ${fn('AVG')}(${kw('CASE')} ${kw('WHEN')} ${fn('lower')}(description) ${kw('LIKE')} ${val(a.kw)} ${kw('THEN')} 1 ${kw('ELSE')} 0 ${kw('END')}) * 100 ${kw('AS')} ${a.label}`
+  );
+  const placeholder = adjLines.length ? adjLines.join(',\n') : `  ${cmt('-- выбери прилагательные')}`;
+  return `${kw('SELECT')}\n  cat_breed,\n${placeholder}\n${kw('FROM')} dict.aaa_item_description\n${kw('GROUP BY')} cat_breed`;
+}
+
+// ── Render modes ─────────────────────────────────
+function renderMode0() {
+  // controls: slider
+  document.getElementById('controls').innerHTML = `
+    <div class="slider-wrap">
+      <span class="slider-label">Порог: pv_all &gt; <b id="thr-disp">${threshold}</b></span>
+      <input type="range" min="1" max="150" value="${threshold}" oninput="threshold=+this.value;document.getElementById('thr-disp').textContent=this.value;renderTable()">
+      <span class="slider-val" id="thr-val">${threshold}</span>
+    </div>`;
+
+  document.getElementById('thead').innerHTML = '<tr><th>#</th><th>pv_all</th><th>item_type</th></tr>';
+  renderTable();
+}
+
+function renderMode1() {
+  // controls: breed chips
+  const chips = breeds.map(b => {
+    const on = breedOn[b.key];
+    return `<div class="cond-chip ${on ? 'on' : ''}" onclick="toggleBreed('${b.key}')">
+      <span class="cond-num">WHEN ${b.whenNum}</span>
+      <span class="cond-code">lower(description) LIKE '${b.kw}'</span>
+      <span class="cond-then ${b.cls}">${b.label}</span>
+      <div class="cond-toggle"></div>
+    </div>`;
+  }).join('');
+  document.getElementById('controls').innerHTML = `<div class="conditions">${chips}</div>`;
+  document.getElementById('thead').innerHTML = '<tr><th>#</th><th>description</th><th>cat_breed</th><th>условие</th></tr>';
+  renderTable();
+}
+
+function renderMode2() {
+  // controls: adj toggles
+  const btns = adjs.map(a =>
+    `<button class="adj-btn ${adjOn[a.key] ? 'on' : ''}" onclick="toggleAdj('${a.key}')">${a.label}</button>`
+  ).join('');
+  document.getElementById('controls').innerHTML = `<div class="adj-row">${btns}</div>`;
+  const activeAdjs = adjs.filter(a => adjOn[a.key]);
+  const headers = '<th>порода</th>' + activeAdjs.map(a => `<th>% ${a.label}</th>`).join('') + '<th>объявлений</th>';
+  document.getElementById('thead').innerHTML = `<tr>${headers}</tr>`;
+  renderTable();
+}
+
+function renderTable() {
+  document.getElementById('sql').innerHTML =
+    mode === 0 ? sqlMode0() : mode === 1 ? sqlMode1() : sqlMode2();
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+
+  if (mode === 0) {
+    let pop = 0;
+    items.forEach(r => {
+      const isPop = r.pv > threshold;
+      if (isPop) pop++;
+      const tr = document.createElement('tr');
+      tr.className = isPop ? 'pop' : 'unpop';
+      tr.innerHTML = `<td class="id-cell">${r.id}</td><td class="pv-cell">${r.pv}</td><td class="type-cell">${isPop ? 'Популярное' : 'Непопулярное'}</td>`;
+      tbody.appendChild(tr);
+    });
+    document.getElementById('count').textContent = `Популярных: ${pop} · Непопулярных: ${items.length - pop}`;
+
+  } else if (mode === 1) {
+    items.forEach(r => {
+      const breed = getBreed(r);
+      const badge = breed.whenNum
+        ? `<span class="when-badge ${breed.cls}">WHEN ${breed.whenNum}</span>`
+        : `<span class="when-badge breed-other">ELSE</span>`;
+      const tr = document.createElement('tr');
+      const shortDesc = r.desc.length > 48 ? r.desc.slice(0, 48) + '…' : r.desc;
+      tr.innerHTML = `<td class="id-cell">${r.id}</td><td class="desc-cell">${shortDesc}</td><td><span class="tag ${breed.cls}">${breed.label}</span></td><td>${badge}</td>`;
+      tbody.appendChild(tr);
+    });
+    const other = items.filter(r => getBreed(r).key === 'other').length;
+    document.getElementById('count').textContent = other > 0
+      ? `В категории «Другая»: ${other} объявлений`
+      : 'Все объявления определены по породе';
+
+  } else {
+    // aggregation mode
+    const activeAdjs = adjs.filter(a => adjOn[a.key]);
+    const breedGroups = [
+      ...breeds.map(b => ({ ...b, rows: items.filter(r => getBreed(r).key === b.key) })),
+      { key:'other', label:'Другая', cls:'breed-other', rows: items.filter(r => getBreed(r).key === 'other') }
+    ].filter(g => g.rows.length > 0);
+
+    breedGroups.forEach(g => {
+      const tr = document.createElement('tr');
+      const cells = activeAdjs.map(a => {
+        const pct = g.rows.length === 0 ? 0 :
+          Math.round(g.rows.filter(r => likeMatch(a.kw, r.desc)).length / g.rows.length * 100);
+        const barW = Math.max(pct * 0.7, pct > 0 ? 4 : 0);
+        return `<td><div class="pbar-wrap"><div class="pbar" style="width:${barW}px;background:#88C043"></div><span class="pbar-val">${pct}%</span></div></td>`;
+      }).join('');
+      tr.innerHTML = `<td><span class="tag ${g.cls}">${g.label}</span></td>${cells}<td style="color:#b4b2a9;font-size:11px">${g.rows.length} шт</td>`;
+      tbody.appendChild(tr);
+    });
+    document.getElementById('count').textContent = activeAdjs.length === 0
+      ? 'Выбери хотя бы одно прилагательное' : '';
+  }
+}
+
+// ── Controls ─────────────────────────────────────
+function toggleBreed(key) {
+  breedOn[key] = !breedOn[key];
+  renderMode1();
+}
+function toggleAdj(key) {
+  adjOn[key] = !adjOn[key];
+  renderMode2();
+}
+
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.mode-btn').forEach((b, i) => {
+    b.className = 'mode-btn' + (i === m ? ' active' : '');
+  });
+  document.getElementById('hint').innerHTML = hints[m];
+  document.getElementById('controls').innerHTML = '';
+  if (m === 0) renderMode0();
+  else if (m === 1) renderMode1();
+  else renderMode2();
+}
+
+setMode(0);
+</script>
+</body>
+</html>

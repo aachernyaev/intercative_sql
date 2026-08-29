@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Агрегирование — тренажёр</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f5f3;
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1rem;
+    min-height: 100vh;
+  }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e5e4de;
+    padding: 2rem;
+    width: 100%;
+    max-width: 760px;
+  }
+
+  /* ── Presets ── */
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  .preset-btn {
+    padding: 6px 14px; border-radius: 8px; border: 1px solid #d3d1c7;
+    background: transparent; color: #2c2c2a; font-size: 13px;
+    font-family: 'Courier New', monospace; cursor: pointer; transition: all .15s;
+  }
+  .preset-btn:hover { background: #f5f5f3; }
+  .preset-btn.active {
+    background: #E6F1FB; color: #0C447C;
+    border-color: #85B7EB; font-weight: 600;
+  }
+
+  /* ── Hint ── */
+  .hint {
+    font-size: 13px; color: #5f5e5a; padding: 8px 0 14px;
+    line-height: 1.65; min-height: 42px;
+  }
+  .hint b { color: #2c2c2a; }
+  .badge {
+    display: inline-block; border-radius: 5px; padding: 1px 7px;
+    font-size: 12px; font-weight: 600; font-family: 'Courier New', monospace;
+  }
+  .badge-blue   { background: #E6F1FB; color: #0C447C; }
+  .badge-green  { background: #EAF3DE; color: #27500A; }
+  .badge-red    { background: #FDE8E8; color: #7C1414; }
+  .badge-yellow { background: #FAEEDA; color: #633806; }
+
+  /* ── Builder ── */
+  .builder {
+    background: #f5f5f3; border-radius: 10px; border: 1px solid #e5e4de;
+    padding: 12px 14px; margin-bottom: 14px;
+    display: flex; flex-direction: column; gap: 11px;
+  }
+  .brow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .blabel {
+    font-size: 12px; color: #888780; font-weight: 500;
+    white-space: nowrap; min-width: 72px;
+  }
+
+  /* Function chips */
+  .fn-chip {
+    padding: 4px 12px; border-radius: 6px; border: 1px solid #d3d1c7;
+    background: transparent; color: #2c2c2a; font-size: 12px;
+    font-family: 'Courier New', monospace; font-weight: 700;
+    cursor: pointer; transition: all .15s;
+  }
+  .fn-chip:hover { background: #ebebea; }
+  .fn-chip.f-on { background: #185FA5; color: #fff; border-color: #185FA5; }
+
+  /* Column chips */
+  .col-chip {
+    padding: 4px 12px; border-radius: 6px; border: 1px solid #d3d1c7;
+    background: transparent; color: #2c2c2a; font-size: 12px;
+    font-family: 'Courier New', monospace;
+    cursor: pointer; transition: all .15s;
+  }
+  .col-chip:hover:not(.c-off) { background: #ebebea; }
+  .col-chip.c-on  { background: #5B2D8E; color: #fff; border-color: #5B2D8E; }
+  .col-chip.c-off { opacity: .28; pointer-events: none; }
+
+  /* Toggles */
+  .tg-group { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .tg-item {
+    display: flex; align-items: center; gap: 6px;
+    cursor: pointer; user-select: none;
+  }
+  .tg-item.tg-off { opacity: .28; pointer-events: none; }
+  .tbox {
+    width: 34px; height: 18px; border-radius: 9px; background: #d3d1c7;
+    position: relative; transition: background .2s; flex-shrink: 0;
+  }
+  .tbox.on { background: #185FA5; }
+  .tknob {
+    width: 14px; height: 14px; border-radius: 50%; background: #fff;
+    position: absolute; top: 2px; left: 2px; transition: left .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  }
+  .tbox.on .tknob { left: 18px; }
+  .tlabel {
+    font-size: 12px; font-family: 'Courier New', monospace;
+    color: #888780; font-weight: 600; white-space: nowrap;
+  }
+  .tlabel.on { color: #185FA5; }
+
+  /* Having row */
+  .having-brow { display: flex; align-items: center; gap: 8px; }
+  .having-brow.hidden { display: none; }
+  .having-label { font-size: 12px; font-family: 'Courier New', monospace; color: #2c2c2a; }
+  .having-input {
+    font-family: 'Courier New', monospace; font-size: 13px; color: #2c2c2a;
+    border: 1px solid #d3d1c7; background: #fff; border-radius: 6px;
+    padding: 3px 8px; outline: none; width: 56px;
+  }
+  .having-input:focus { border-color: #185FA5; }
+  .having-clear {
+    font-size: 12px; color: #888780; cursor: pointer;
+    padding: 2px 6px; border-radius: 5px; border: 1px solid #d3d1c7;
+    background: transparent; line-height: 1.4;
+  }
+  .having-clear:hover { background: #f0efe8; }
+
+  /* ── SQL box ── */
+  .sql-box {
+    font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.9;
+    padding: 14px 16px; background: #1e1e2e; border-radius: 10px;
+    margin-bottom: 14px; white-space: pre; overflow-x: auto; color: #cdd6f4;
+  }
+  .kw  { color: #89b4fa; }
+  .fn  { color: #fab387; }
+  .cl  { color: #a6e3a1; }
+  .nm  { color: #cba6f7; }
+  .cm  { color: #585b70; }
+
+  /* ── NULL warning ── */
+  .null-warn {
+    font-size: 12px; color: #633806; background: #FAEEDA;
+    border-radius: 8px; padding: 8px 12px; margin-bottom: 12px;
+  }
+  .null-warn b { font-weight: 600; }
+
+  /* ── Tables ── */
+  .section-title {
+    font-size: 11px; color: #888780; font-weight: 500;
+    text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px;
+  }
+  .tbl-outer { border-radius: 10px; overflow: hidden; border: 1px solid #e5e4de; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th {
+    text-align: left; padding: 7px 11px; font-size: 11px; color: #888780;
+    font-weight: 500; border-bottom: 1px solid #e5e4de;
+    background: #fafaf8; white-space: nowrap;
+  }
+  th.hi { color: #0C447C; background: #EEF5FD; }
+  td {
+    padding: 7px 11px; border-bottom: 1px solid #f0efe8;
+    color: #2c2c2a; font-family: 'Courier New', monospace; font-size: 12px;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.null-v { color: #b4b2a9; font-style: italic; }
+  td.hi { background: #f5f9ff; }
+
+  /* City stripe */
+  tr.c-msk td:first-child { border-left: 3px solid #85B7EB; padding-left: 8px; }
+  tr.c-spb td:first-child { border-left: 3px solid #8CC76B; padding-left: 8px; }
+  tr.c-kzn td:first-child { border-left: 3px solid #E8C96C; padding-left: 8px; }
+
+  /* Result */
+  .result-meta { font-size: 12px; color: #888780; margin-bottom: 6px; margin-top: 16px; }
+  tr.agg-single td {
+    background: #EAF3DE; font-weight: 700; color: #27500A;
+    font-size: 16px; text-align: center; padding: 14px;
+  }
+  tr.rg-msk td:first-child { border-left: 3px solid #85B7EB; padding-left: 8px; }
+  tr.rg-spb td:first-child { border-left: 3px solid #8CC76B; padding-left: 8px; }
+  tr.rg-kzn td:first-child { border-left: 3px solid #E8C96C; padding-left: 8px; }
+  td.agg-v { font-weight: 700; color: #27500A; }
+  tr.rg-dim td { opacity: .18; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- Presets -->
+  <div class="presets" id="presets">
+    <button class="preset-btn active" onclick="applyPreset(0)">COUNT(*)</button>
+    <button class="preset-btn"        onclick="applyPreset(1)">SUM / AVG / MIN / MAX</button>
+    <button class="preset-btn"        onclick="applyPreset(2)">GROUP BY</button>
+    <button class="preset-btn"        onclick="applyPreset(3)">COUNT(DISTINCT)</button>
+    <button class="preset-btn"        onclick="applyPreset(4)">HAVING</button>
+  </div>
+
+  <div class="hint" id="hint"></div>
+
+  <!-- Builder -->
+  <div class="builder">
+
+    <!-- Function row -->
+    <div class="brow">
+      <span class="blabel">Функция:</span>
+      <button class="fn-chip f-on" data-fn="COUNT" onclick="setFunc('COUNT')">COUNT</button>
+      <button class="fn-chip"      data-fn="SUM"   onclick="setFunc('SUM')">SUM</button>
+      <button class="fn-chip"      data-fn="AVG"   onclick="setFunc('AVG')">AVG</button>
+      <button class="fn-chip"      data-fn="MIN"   onclick="setFunc('MIN')">MIN</button>
+      <button class="fn-chip"      data-fn="MAX"   onclick="setFunc('MAX')">MAX</button>
+    </div>
+
+    <!-- Column row -->
+    <div class="brow">
+      <span class="blabel">Колонка:</span>
+      <button class="col-chip c-on" data-col="*"       onclick="setCol('*')">*</button>
+      <button class="col-chip"      data-col="price"   onclick="setCol('price')">price</button>
+      <button class="col-chip"      data-col="views"   onclick="setCol('views')">views</button>
+      <button class="col-chip"      data-col="user_id" onclick="setCol('user_id')">user_id</button>
+    </div>
+
+    <!-- Toggles row -->
+    <div class="brow">
+      <div class="tg-group">
+        <div class="tg-item" onclick="toggleGroupBy()">
+          <div class="tbox" id="tb-grp"><div class="tknob"></div></div>
+          <span class="tlabel" id="tl-grp">GROUP BY city</span>
+        </div>
+        <div class="tg-item" id="dist-item" onclick="toggleDistinct()">
+          <div class="tbox" id="tb-dist"><div class="tknob"></div></div>
+          <span class="tlabel" id="tl-dist">DISTINCT</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- HAVING row (visible only when GROUP BY on) -->
+    <div class="brow having-brow hidden" id="having-brow">
+      <span class="having-label">HAVING COUNT(*) ≥</span>
+      <input class="having-input" id="having-input" type="number" min="1" max="8"
+             placeholder="—" oninput="onHavingInput()" />
+      <button class="having-clear" onclick="clearHaving()">сбросить</button>
+    </div>
+
+  </div>
+
+  <!-- SQL preview -->
+  <div class="sql-box" id="sql-box"></div>
+
+  <!-- NULL warning -->
+  <div class="null-warn" id="null-warn" style="display:none">
+    ⚠ <b>NULL игнорируется:</b> <span id="null-detail"></span>
+  </div>
+
+  <!-- Source table -->
+  <div class="section-title">Исходные данные — listings</div>
+  <div class="tbl-outer">
+    <table>
+      <thead id="src-thead"></thead>
+      <tbody id="src-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Result -->
+  <div class="result-meta" id="result-meta"></div>
+  <div class="section-title">Результат запроса</div>
+  <div class="tbl-outer">
+    <table>
+      <thead id="res-thead"></thead>
+      <tbody id="res-tbody"></tbody>
+    </table>
+  </div>
+
+</div>
+<script>
+/* ─── Data ─────────────────────────────────────── */
+const rows = [
+  {id:1, city:'Москва', price:5000,  views:120,  user_id:'u1'},
+  {id:2, city:'Москва', price:2000,  views:80,   user_id:'u2'},
+  {id:3, city:'Москва', price:15000, views:350,  user_id:'u2'},
+  {id:4, city:'Москва', price:4000,  views:60,   user_id:'u3'},
+  {id:5, city:'СПб',    price:8000,  views:200,  user_id:'u1'},
+  {id:6, city:'СПб',    price:7000,  views:null, user_id:'u3'},
+  {id:7, city:'Казань', price:6000,  views:90,   user_id:'u4'},
+  {id:8, city:'Казань', price:9000,  views:null, user_id:'u4'},
+];
+const CITY_CLS = {'Москва':'msk','СПб':'spb','Казань':'kzn'};
+
+/* ─── Presets ───────────────────────────────────── */
+const presets = [
+  {func:'COUNT', col:'*',       groupBy:false, distinct:false, havingN:null},
+  {func:'SUM',   col:'price',   groupBy:false, distinct:false, havingN:null},
+  {func:'COUNT', col:'*',       groupBy:true,  distinct:false, havingN:null},
+  {func:'COUNT', col:'user_id', groupBy:false, distinct:true,  havingN:null},
+  {func:'COUNT', col:'*',       groupBy:true,  distinct:false, havingN:2   },
+];
+
+const hints = [
+  `<b>COUNT(*)</b> считает все строки таблицы — включая те, где есть <span class="badge badge-yellow">NULL</span>. Без <span class="badge badge-blue">GROUP BY</span> агрегат применяется ко всей таблице и возвращается одна итоговая строка.`,
+  `<b>SUM, AVG, MIN, MAX</b> — числовые агрегаты. Попробуй разные функции и колонки. Обрати внимание: в колонке <span class="badge badge-yellow">views</span> есть <span class="badge badge-red">NULL</span> — агрегаты их молча игнорируют.`,
+  `<b>GROUP BY</b> разбивает строки на группы и применяет агрегат к каждой отдельно. Вместо одной строки — по строке на каждый город. Строки одного цвета — одна группа.`,
+  `<b>COUNT(DISTINCT col)</b> считает только уникальные значения. Продавцы u1–u4 встречаются дважды — с <span class="badge badge-blue">DISTINCT</span> получим <b>4</b>, без — <b>8</b>. Попробуй включить и выключить.`,
+  `<b>HAVING</b> — это <span class="badge badge-blue">WHERE</span> для групп после агрегации. <span class="badge badge-red">WHERE</span> фильтрует строки до группировки, <span class="badge badge-blue">HAVING</span> — уже после. Измени порог, чтобы видеть, какие города проходят.`,
+];
+
+/* ─── State ─────────────────────────────────────── */
+let func='COUNT', col='*', groupBy=false, distinct=false, havingN=null, curPreset=0;
+
+/* ─── Compute ───────────────────────────────────── */
+function agg(vals, fn) {
+  if (fn === 'COUNT') return vals.filter(v => v !== null).length;
+  const nums = vals.filter(v => v !== null && typeof v === 'number');
+  if (!nums.length) return null;
+  if (fn === 'SUM') return nums.reduce((a,b) => a+b, 0);
+  if (fn === 'AVG') return Math.round(nums.reduce((a,b)=>a+b,0) / nums.length);
+  if (fn === 'MIN') return Math.min(...nums);
+  if (fn === 'MAX') return Math.max(...nums);
+}
+
+function aggLabel() {
+  if (distinct && col !== '*') return `${func}(DISTINCT&nbsp;${col})`;
+  return `${func}(${col})`;
+}
+
+/* ─── SQL builder ───────────────────────────────── */
+function buildSql() {
+  const kw = s => `<span class="kw">${s}</span>`;
+  const fn = s => `<span class="fn">${s}</span>`;
+  const cl = s => `<span class="cl">${s}</span>`;
+  const nm = s => `<span class="nm">${s}</span>`;
+  const cm = s => `<span class="cm">${s}</span>`;
+
+  const inner = col === '*' ? '*' : cl(col);
+  const distPart = (distinct && col !== '*') ? `${kw('DISTINCT')} ` : '';
+  const aggExpr = `${fn(func)}(${distPart}${inner})`;
+
+  let sql = `${kw('SELECT')} `;
+  if (groupBy) sql += `${cl('city')},\n       `;
+  sql += `${aggExpr} ${kw('AS')} ${cl('result')}\n`;
+  sql += `${kw('FROM')}   listings`;
+  if (groupBy) {
+    sql += `\n${kw('GROUP BY')} ${cl('city')}`;
+    if (havingN !== null)
+      sql += `\n${kw('HAVING')}  ${fn('COUNT')}(*) ${kw('>=')} ${nm(havingN)}`;
+  }
+  return sql;
+}
+
+/* ─── NULL warning ──────────────────────────────── */
+function updateNullWarn() {
+  const w = document.getElementById('null-warn');
+  const d = document.getElementById('null-detail');
+  const nullCnt = rows.filter(r => r.views === null).length;
+  if (col !== 'views') { w.style.display = 'none'; return; }
+  w.style.display = '';
+  if (func === 'COUNT') {
+    d.textContent = `COUNT(views) = ${rows.length - nullCnt} (только ненулевые), а COUNT(*) = ${rows.length} — разница ${nullCnt} строки с NULL.`;
+  } else {
+    d.textContent = `${func}(views) использует только ${rows.length - nullCnt} ненулевых значений из ${rows.length}.`;
+  }
+}
+
+/* ─── Source table ──────────────────────────────── */
+function renderSource() {
+  const colHi = c => col !== '*' && col === c;
+  document.getElementById('src-thead').innerHTML = `<tr>
+    <th>id</th><th>city</th>
+    <th class="${colHi('price') ? 'hi' : ''}">price</th>
+    <th class="${colHi('views') ? 'hi' : ''}">views</th>
+    <th class="${colHi('user_id') ? 'hi' : ''}">user_id</th>
+  </tr>`;
+  const cc = CITY_CLS;
+  document.getElementById('src-tbody').innerHTML = rows.map(r => {
+    const cityClass = groupBy ? ` c-${cc[r.city] || ''}` : '';
+    const nullV = r.views === null;
+    return `<tr class="${cityClass}">
+      <td>${r.id}</td>
+      <td>${r.city}</td>
+      <td class="${colHi('price') ? 'hi' : ''}">${r.price.toLocaleString('ru')}</td>
+      <td class="${nullV ? 'null-v' : ''}${colHi('views') ? ' hi' : ''}">${nullV ? 'NULL' : r.views}</td>
+      <td class="${colHi('user_id') ? 'hi' : ''}">${r.user_id}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ─── Result table ──────────────────────────────── */
+function renderResult() {
+  const rth = document.getElementById('res-thead');
+  const rtb = document.getElementById('res-tbody');
+  const meta = document.getElementById('result-meta');
+  const label = aggLabel();
+
+  if (!groupBy) {
+    let vals = col === '*' ? rows.map(() => 1) : rows.map(r => r[col]);
+    if (distinct && col !== '*') vals = [...new Set(vals.filter(v => v !== null))];
+    const result = agg(vals, func);
+    rth.innerHTML = `<tr><th>${label}</th></tr>`;
+    rtb.innerHTML = `<tr class="agg-single"><td>${result !== null ? result.toLocaleString('ru') : 'NULL'}</td></tr>`;
+    meta.textContent = 'Результат: 1 строка';
+  } else {
+    const cities = [...new Set(rows.map(r => r.city))];
+    const groups = cities.map(city => {
+      const g = rows.filter(r => r.city === city);
+      let vals = col === '*' ? g.map(() => 1) : g.map(r => r[col]);
+      if (distinct && col !== '*') vals = [...new Set(vals.filter(v => v !== null))];
+      const result = agg(vals, func);
+      const shown = havingN === null || g.length >= havingN;
+      return {city, result, shown, cc: CITY_CLS[city] || ''};
+    });
+    const shownCnt = groups.filter(g => g.shown).length;
+    rth.innerHTML = `<tr><th>city</th><th>${label}</th></tr>`;
+    rtb.innerHTML = groups.map(g =>
+      `<tr class="rg-${g.cc}${g.shown ? '' : ' rg-dim'}">
+        <td>${g.city}</td>
+        <td class="agg-v">${g.result !== null ? g.result.toLocaleString('ru') : 'NULL'}</td>
+      </tr>`
+    ).join('');
+    meta.textContent = havingN !== null
+      ? `После HAVING: ${shownCnt} из ${groups.length} групп`
+      : `Результат: ${groups.length} строки`;
+  }
+}
+
+/* ─── Full render ───────────────────────────────── */
+function render() {
+  // Sync function chips
+  document.querySelectorAll('.fn-chip').forEach(c =>
+    c.className = 'fn-chip' + (c.dataset.fn === func ? ' f-on' : '')
+  );
+  // Sync column chips — disable * and user_id for numeric functions
+  document.querySelectorAll('.col-chip').forEach(c => {
+    const cv = c.dataset.col;
+    const off = (func !== 'COUNT') && (cv === '*' || cv === 'user_id');
+    c.className = 'col-chip' + (cv === col ? ' c-on' : '') + (off ? ' c-off' : '');
+  });
+  // GROUP BY toggle
+  document.getElementById('tb-grp').className = 'tbox' + (groupBy ? ' on' : '');
+  document.getElementById('tl-grp').className = 'tlabel' + (groupBy ? ' on' : '');
+  // DISTINCT toggle — only for COUNT on non-* column
+  const distAvail = func === 'COUNT' && col !== '*';
+  document.getElementById('dist-item').className = 'tg-item' + (distAvail ? '' : ' tg-off');
+  document.getElementById('tb-dist').className = 'tbox' + (distinct ? ' on' : '');
+  document.getElementById('tl-dist').className = 'tlabel' + (distinct ? ' on' : '');
+  // HAVING row
+  document.getElementById('having-brow').className = 'brow having-brow' + (groupBy ? '' : ' hidden');
+  // SQL, warn, tables
+  document.getElementById('sql-box').innerHTML = buildSql();
+  updateNullWarn();
+  renderSource();
+  renderResult();
+  // Preset buttons
+  document.querySelectorAll('.preset-btn').forEach((b,i) =>
+    b.className = 'preset-btn' + (i === curPreset ? ' active' : '')
+  );
+}
+
+/* ─── Controls ──────────────────────────────────── */
+function setFunc(f) {
+  func = f;
+  if (f !== 'COUNT') {
+    distinct = false;
+    if (col === '*' || col === 'user_id') col = 'price';
+  }
+  curPreset = -1; render();
+}
+function setCol(c) {
+  if (func !== 'COUNT' && (c === '*' || c === 'user_id')) return;
+  col = c;
+  if (c === '*') distinct = false;
+  curPreset = -1; render();
+}
+function toggleGroupBy() {
+  groupBy = !groupBy;
+  curPreset = -1; render();
+}
+function toggleDistinct() {
+  if (func !== 'COUNT' || col === '*') return;
+  distinct = !distinct;
+  curPreset = -1; render();
+}
+function onHavingInput() {
+  const v = parseInt(document.getElementById('having-input').value);
+  havingN = (isNaN(v) || v < 1) ? null : v;
+  curPreset = -1; render();
+}
+function clearHaving() {
+  havingN = null;
+  document.getElementById('having-input').value = '';
+  curPreset = -1; render();
+}
+function applyPreset(i) {
+  const p = presets[i];
+  func = p.func; col = p.col; groupBy = p.groupBy; distinct = p.distinct; havingN = p.havingN;
+  curPreset = i;
+  document.getElementById('hint').innerHTML = hints[i];
+  document.getElementById('having-input').value = havingN !== null ? havingN : '';
+  render();
+}
+
+/* ─── Init ──────────────────────────────────────── */
+document.getElementById('hint').innerHTML = hints[0];
+render();
+</script>
+</body>
+</html>
