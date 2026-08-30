@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Воронка и конверсия</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; padding: 28px 18px; background: #f5f5f3; color: #2c2c2a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .card { width: 100%; max-width: 1060px; margin: 0 auto; padding: 26px; border: 1px solid #e5e4de; border-radius: 16px; background: #fff; }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .controls { margin-bottom: 14px; padding: 12px; border: 1px solid #e5e4de; border-radius: 9px; background: #fafaf8; }
+  .control-title { margin-bottom: 8px; color: #85837c; font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .toggle { display: inline-grid; grid-template-columns: repeat(2, minmax(170px, 1fr)); gap: 4px; padding: 3px; border-radius: 8px; background: #ecebe6; }
+  .toggle button { padding: 7px 10px; border: 0; border-radius: 6px; background: transparent; color: #77756f; font: 700 10px "Courier New", monospace; cursor: pointer; }
+  .toggle button.active { background: #fff; color: #0c447c; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  .sql { margin-bottom: 14px; padding: 15px 17px; max-height: 300px; overflow: auto; border-radius: 11px; background: #1e1e2e; color: #cdd6f4; font: 11px/1.6 "Courier New", monospace; white-space: pre; }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .value { color: #a6e3a1; }
+  .funnel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 16px; }
+  .step { padding: 13px; border: 1px solid #e5e4de; border-radius: 11px; background: #fafaf8; text-align: left; cursor: pointer; }
+  .step.active { border-color: #85b7eb; background: #f0f6fc; box-shadow: inset 0 0 0 1px #85b7eb; }
+  .step-number { color: #999790; font: 700 8px "Courier New", monospace; }
+  .step-name { margin: 3px 0 6px; font: 800 12px "Courier New", monospace; }
+  .step-count { color: #185fa5; font-size: 28px; font-weight: 850; }
+  .step-conversion { margin-top: 5px; color: #77756f; font-size: 9.5px; line-height: 1.45; }
+  .bar-track { height: 6px; margin-top: 9px; overflow: hidden; border-radius: 6px; background: #e6e4de; }
+  .bar { height: 100%; border-radius: 6px; background: #85b7eb; }
+  .section-title { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .section-meta { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .layout { display: grid; grid-template-columns: 1.1fr .9fr; gap: 14px; margin-bottom: 16px; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th, td { padding: 8px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 9.5px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .user-row { cursor: pointer; }
+  .user-row:hover td { background: #f3f8fd; }
+  .user-row.reached td { background: #f5faef; color: #3b6d11; }
+  .user-row.not-reached td { opacity: .35; }
+  .user-row.selected td { box-shadow: inset 0 1px #85b7eb, inset 0 -1px #85b7eb; }
+  .user-row.selected td:first-child { box-shadow: inset 2px 0 #185fa5, inset 0 1px #85b7eb, inset 0 -1px #85b7eb; }
+  .check { color: #3b6d11; font-weight: 850; text-align: center; }
+  .cross { color: #b05a42; text-align: center; }
+  .side { display: flex; flex-direction: column; gap: 10px; }
+  .journey-card { padding: 14px; border: 1px solid #e5e4de; border-radius: 10px; background: #fafaf8; }
+  .journey-title { margin-bottom: 4px; font-size: 16px; font-weight: 800; }
+  .journey-level { color: #185fa5; font: 700 10px "Courier New", monospace; }
+  .journey-text { margin-top: 9px; color: #686762; font-size: 11.5px; line-height: 1.5; }
+  .summary { padding: 12px; border-left: 3px solid #85b7eb; border-radius: 7px; background: #f3f8fd; color: #315c84; font-size: 11.5px; line-height: 1.55; }
+  .timeline-wrap { padding: 13px; overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; background: #fafaf8; }
+  .timeline { display: flex; gap: 7px; min-width: max-content; }
+  .event { position: relative; min-width: 125px; padding: 11px 8px 9px; border: 1px solid #e5e4de; border-radius: 9px; background: #fff; text-align: center; }
+  .event.accepted { border-color: #b5d88a; background: #f1f8e9; color: #3b6d11; }
+  .event.rejected { opacity: .38; border-style: dashed; }
+  .event-time { margin-bottom: 4px; color: #85837c; font: 9px "Courier New", monospace; }
+  .event-name { font-size: 12px; font-weight: 800; }
+  .event-step { margin-top: 5px; color: #639922; font: 700 7px "Courier New", monospace; }
+  .arrow { align-self: center; color: #aaa89f; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 780px) { body { padding: 12px; } .card { padding: 18px; } .layout { grid-template-columns: 1fr; } .toggle { display: grid; grid-template-columns: 1fr; } }
+  @media (max-width: 560px) { .funnel { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Воронка и конверсия</h1>
+  <p class="intro">Воронка показывает, сколько пользователей дошло до каждого шага. Конверсию можно считать от предыдущего шага или от начала воронки.</p>
+
+  <section class="controls">
+    <div class="control-title">Как засчитывать шаги</div>
+    <div id="mode-toggle" class="toggle">
+      <button class="active" type="button" data-mode="ordered">строго по порядку</button>
+      <button type="button" data-mode="presence">события есть, порядок не важен</button>
+    </div>
+  </section>
+
+  <div id="sql" class="sql"></div>
+  <section id="funnel" class="funnel"></section>
+
+  <section class="layout">
+    <div>
+      <div class="section-title"><span>Пользователи по шагам</span><span id="matrix-meta" class="section-meta"></span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>user_id</th><th>user</th><th>1 · view</th><th>2 · contact</th><th>3 · purchase</th></tr></thead>
+        <tbody id="users-body"></tbody>
+      </table></div>
+    </div>
+    <aside class="side">
+      <section id="journey-card" class="journey-card"></section>
+      <section id="summary" class="summary"></section>
+    </aside>
+  </section>
+
+  <div class="section-title"><span id="timeline-title">История пользователя</span><span class="section-meta">зелёные события засчитаны как шаги</span></div>
+  <section class="timeline-wrap"><div id="timeline" class="timeline"></div></section>
+
+  <p class="note"><b>Определение воронки нужно фиксировать заранее.</b> Наличие событий и строгая последовательность отвечают на разные вопросы и дают разные значения конверсии.</p>
+</main>
+
+<script>
+const steps = ['view', 'contact', 'purchase'];
+const events = [
+  { event_id: 1, user_id: 101, user: 'Анна', event_time: '09:00', event_name: 'view' },
+  { event_id: 2, user_id: 101, user: 'Анна', event_time: '09:20', event_name: 'search' },
+  { event_id: 3, user_id: 101, user: 'Анна', event_time: '09:40', event_name: 'contact' },
+  { event_id: 4, user_id: 101, user: 'Анна', event_time: '10:20', event_name: 'purchase' },
+  { event_id: 5, user_id: 102, user: 'Борис', event_time: '09:10', event_name: 'view' },
+  { event_id: 6, user_id: 102, user: 'Борис', event_time: '10:00', event_name: 'contact' },
+  { event_id: 7, user_id: 103, user: 'Вера', event_time: '08:40', event_name: 'contact' },
+  { event_id: 8, user_id: 103, user: 'Вера', event_time: '09:00', event_name: 'view' },
+  { event_id: 9, user_id: 103, user: 'Вера', event_time: '10:00', event_name: 'purchase' },
+  { event_id: 10, user_id: 104, user: 'Глеб', event_time: '09:15', event_name: 'view' },
+  { event_id: 11, user_id: 104, user: 'Глеб', event_time: '10:15', event_name: 'purchase' },
+  { event_id: 12, user_id: 105, user: 'Дина', event_time: '08:50', event_name: 'view' },
+  { event_id: 13, user_id: 105, user: 'Дина', event_time: '09:30', event_name: 'contact' },
+  { event_id: 14, user_id: 105, user: 'Дина', event_time: '09:45', event_name: 'contact' },
+  { event_id: 15, user_id: 105, user: 'Дина', event_time: '11:00', event_name: 'purchase' },
+  { event_id: 16, user_id: 106, user: 'Егор', event_time: '09:25', event_name: 'view' },
+  { event_id: 17, user_id: 107, user: 'Жанна', event_time: '10:30', event_name: 'purchase' },
+  { event_id: 18, user_id: 108, user: 'Игорь', event_time: '09:00', event_name: 'view' },
+  { event_id: 19, user_id: 108, user: 'Игорь', event_time: '09:30', event_name: 'purchase' },
+  { event_id: 20, user_id: 108, user: 'Игорь', event_time: '10:00', event_name: 'contact' },
+];
+
+let mode = 'ordered';
+let focusedStep = 3;
+let selectedUserId = 103;
+
+function users() {
+  return [...new Map(events.map((event) => [event.user_id, { user_id: event.user_id, user: event.user }])).values()];
+}
+
+function userEvents(userId) {
+  return events.filter((event) => event.user_id === userId).sort((a, b) => a.event_time.localeCompare(b.event_time) || a.event_id - b.event_id);
+}
+
+function journey(userId) {
+  const rows = userEvents(userId);
+  const accepted = [];
+  if (mode === 'presence') {
+    for (const step of steps) {
+      const event = rows.find((row) => row.event_name === step);
+      if (!event) break;
+      accepted.push(event);
+    }
+  } else {
+    let afterTime = null;
+    for (const step of steps) {
+      const event = rows.find((row) => row.event_name === step && (afterTime === null || row.event_time > afterTime));
+      if (!event) break;
+      accepted.push(event);
+      afterTime = event.event_time;
+    }
+  }
+  return { rows, accepted, reached: steps.map((_, index) => accepted.length > index) };
+}
+
+function counts() {
+  return steps.map((_, index) => users().filter((user) => journey(user.user_id).reached[index]).length);
+}
+
+function percent(value, base) {
+  if (!base) return '—';
+  return `${Math.round(value / base * 1000) / 10}%`;
+}
+
+function renderSql() {
+  if (mode === 'presence') {
+    document.getElementById('sql').innerHTML = `<span class="kw">WITH</span> user_steps <span class="kw">AS</span> (\n  <span class="kw">SELECT</span>\n      user_id,\n      <span class="fn">MIN(event_time)</span> <span class="kw">FILTER</span> (<span class="kw">WHERE</span> event_name = <span class="value">'view'</span>) <span class="kw">AS</span> view_time,\n      <span class="fn">MIN(event_time)</span> <span class="kw">FILTER</span> (<span class="kw">WHERE</span> event_name = <span class="value">'contact'</span>) <span class="kw">AS</span> contact_time,\n      <span class="fn">MIN(event_time)</span> <span class="kw">FILTER</span> (<span class="kw">WHERE</span> event_name = <span class="value">'purchase'</span>) <span class="kw">AS</span> purchase_time\n  <span class="kw">FROM</span> events\n  <span class="kw">GROUP BY</span> user_id\n)\n<span class="kw">SELECT</span>\n    <span class="fn">COUNT(*)</span> <span class="kw">FILTER</span> (<span class="kw">WHERE</span> view_time <span class="kw">IS NOT NULL</span>) <span class="kw">AS</span> step_1,\n    <span class="fn">COUNT(*)</span> <span class="kw">FILTER</span> (<span class="kw">WHERE</span> view_time <span class="kw">IS NOT NULL</span> <span class="kw">AND</span> contact_time <span class="kw">IS NOT NULL</span>) <span class="kw">AS</span> step_2,\n    <span class="fn">COUNT(*)</span> <span class="kw">FILTER</span> (<span class="kw">WHERE</span> view_time <span class="kw">IS NOT NULL</span> <span class="kw">AND</span> contact_time <span class="kw">IS NOT NULL</span> <span class="kw">AND</span> purchase_time <span class="kw">IS NOT NULL</span>) <span class="kw">AS</span> step_3\n<span class="kw">FROM</span> user_steps`;
+  } else {
+    document.getElementById('sql').innerHTML = `<span class="kw">WITH</span> first_step <span class="kw">AS</span> (\n  <span class="kw">SELECT</span> user_id,\n         <span class="fn">MIN(event_time)</span> <span class="kw">FILTER</span> (<span class="kw">WHERE</span> event_name = <span class="value">'view'</span>) <span class="kw">AS</span> view_time\n  <span class="kw">FROM</span> events <span class="kw">GROUP BY</span> user_id\n),\nsecond_step <span class="kw">AS</span> (\n  <span class="kw">SELECT</span> f.user_id, f.view_time, <span class="fn">MIN(e.event_time)</span> <span class="kw">AS</span> contact_time\n  <span class="kw">FROM</span> first_step f\n  <span class="kw">LEFT JOIN</span> events e\n    <span class="kw">ON</span> e.user_id = f.user_id\n   <span class="kw">AND</span> e.event_name = <span class="value">'contact'</span>\n   <span class="kw">AND</span> e.event_time &gt; f.view_time\n  <span class="kw">WHERE</span> f.view_time <span class="kw">IS NOT NULL</span>\n  <span class="kw">GROUP BY</span> f.user_id, f.view_time\n),\nthird_step <span class="kw">AS</span> (\n  <span class="kw">SELECT</span> s.user_id, s.view_time, s.contact_time,\n         <span class="fn">MIN(e.event_time)</span> <span class="kw">AS</span> purchase_time\n  <span class="kw">FROM</span> second_step s\n  <span class="kw">LEFT JOIN</span> events e\n    <span class="kw">ON</span> e.user_id = s.user_id\n   <span class="kw">AND</span> e.event_name = <span class="value">'purchase'</span>\n   <span class="kw">AND</span> e.event_time &gt; s.contact_time\n  <span class="kw">GROUP BY</span> s.user_id, s.view_time, s.contact_time\n)\n<span class="kw">SELECT</span> <span class="fn">COUNT(*)</span> <span class="kw">AS</span> step_1,\n       <span class="fn">COUNT(contact_time)</span> <span class="kw">AS</span> step_2,\n       <span class="fn">COUNT(purchase_time)</span> <span class="kw">AS</span> step_3\n<span class="kw">FROM</span> third_step`;
+  }
+}
+
+function renderFunnel() {
+  const values = counts();
+  const maximum = values[0] || 1;
+  document.getElementById('funnel').innerHTML = steps.map((step, index) => {
+    const previousBase = index === 0 ? values[0] : values[index - 1];
+    return `<button class="step ${focusedStep === index + 1 ? 'active' : ''}" type="button" data-step="${index + 1}"><div class="step-number">ШАГ ${index + 1}</div><div class="step-name">${step}</div><div class="step-count">${values[index]}</div><div class="step-conversion">от предыдущего: ${percent(values[index], previousBase)}<br>от начала: ${percent(values[index], values[0])}</div><div class="bar-track"><div class="bar" style="width:${values[index] / maximum * 100}%"></div></div></button>`;
+  }).join('');
+}
+
+function renderUsers() {
+  document.getElementById('matrix-meta').textContent = `подсвечен шаг ${focusedStep}`;
+  document.getElementById('users-body').innerHTML = users().map((user) => {
+    const data = journey(user.user_id);
+    const reachesFocus = data.reached[focusedStep - 1];
+    const classes = ['user-row', reachesFocus ? 'reached' : 'not-reached', user.user_id === selectedUserId ? 'selected' : ''].join(' ');
+    return `<tr class="${classes}" data-user-id="${user.user_id}"><td>${user.user_id}</td><td>${user.user}</td>${data.reached.map((reached) => `<td class="${reached ? 'check' : 'cross'}">${reached ? '✓' : '—'}</td>`).join('')}</tr>`;
+  }).join('');
+}
+
+function renderJourney() {
+  const user = users().find((item) => item.user_id === selectedUserId);
+  const data = journey(selectedUserId);
+  const level = data.accepted.length;
+  let reason;
+  if (level === 3) reason = 'Пользователь дошёл до покупки и завершил воронку.';
+  else if (mode === 'ordered') reason = `После ${level ? steps[level - 1] : 'начала'} не найдено событие ${steps[level]} в правильном порядке.`;
+  else reason = `Для следующего шага отсутствует событие ${steps[level]}.`;
+  document.getElementById('journey-card').innerHTML = `<div class="journey-title">${user.user}</div><div class="journey-level">достигнут шаг ${level} из 3</div><div class="journey-text">${reason}</div>`;
+  const values = counts();
+  document.getElementById('summary').innerHTML = `<b>Итоговая конверсия: ${percent(values[2], values[0])}.</b><br>${values[0]} пользователей начали воронку, ${values[2]} дошли до purchase.`;
+}
+
+function renderTimeline() {
+  const user = users().find((item) => item.user_id === selectedUserId);
+  const data = journey(selectedUserId);
+  const acceptedIds = new Map(data.accepted.map((event, index) => [event.event_id, index + 1]));
+  document.getElementById('timeline-title').textContent = `История · ${user.user}`;
+  document.getElementById('timeline').innerHTML = data.rows.map((event, index) => {
+    const step = acceptedIds.get(event.event_id);
+    const isFunnelEvent = steps.includes(event.event_name);
+    const className = step ? 'accepted' : isFunnelEvent ? 'rejected' : '';
+    return `${index ? '<span class="arrow">→</span>' : ''}<div class="event ${className}"><div class="event-time">${event.event_time}</div><div class="event-name">${event.event_name}</div>${step ? `<div class="event-step">ЗАСЧИТАН ШАГ ${step}</div>` : ''}</div>`;
+  }).join('');
+}
+
+function render() {
+  document.querySelectorAll('[data-mode]').forEach((button) => button.classList.toggle('active', button.dataset.mode === mode));
+  renderSql();
+  renderFunnel();
+  renderUsers();
+  renderJourney();
+  renderTimeline();
+}
+
+document.getElementById('mode-toggle').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-mode]');
+  if (!button) return;
+  mode = button.dataset.mode;
+  render();
+});
+
+document.getElementById('funnel').addEventListener('click', (event) => {
+  const step = event.target.closest('[data-step]');
+  if (!step) return;
+  focusedStep = Number(step.dataset.step);
+  render();
+});
+
+document.getElementById('users-body').addEventListener('click', (event) => {
+  const row = event.target.closest('[data-user-id]');
+  if (!row) return;
+  selectedUserId = Number(row.dataset.userId);
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

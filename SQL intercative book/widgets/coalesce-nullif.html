@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COALESCE и NULLIF</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+  .tab {
+    padding: 9px 7px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 11px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .tab:hover { border-color: #85b7eb; }
+  .tab.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .hint {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: 1.5fr .8fr;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .control {
+    min-width: 0;
+    padding: 13px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+  }
+  .control-title { margin-bottom: 9px; color: #85837c; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .priority { display: flex; flex-wrap: wrap; gap: 7px; }
+  .priority-button {
+    padding: 7px 9px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 11px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .priority-button:first-child { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; font-weight: 700; }
+  .priority-number { display: inline-grid; place-items: center; width: 17px; height: 17px; margin-right: 5px; border-radius: 50%; background: #f0efe8; font-size: 9px; }
+  .priority-button:first-child .priority-number { background: #b8d8f2; }
+  select {
+    width: 100%;
+    padding: 8px 9px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #373734;
+    font: 12px "Courier New", monospace;
+  }
+  .toggle-row { display: flex; min-height: 32px; align-items: center; justify-content: space-between; gap: 12px; color: #5f5e5a; font-size: 11px; }
+  .switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 999px;
+    background: #d3d1c7;
+    cursor: pointer;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.18);
+    transition: .18s;
+  }
+  .switch.on { background: #185fa5; }
+  .switch.on::after { left: 23px; }
+  .sql {
+    margin-bottom: 16px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 13px/1.75 "Courier New", monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .column { color: #f9e2af; }
+  .value { color: #a6e3a1; }
+  .null { color: #fab387; font-weight: 700; }
+  .explain-flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .flow-step { padding: 9px; border: 1px solid #e5e4de; border-radius: 8px; background: #fafaf8; color: #77756f; font-size: 11px; text-align: center; }
+  .flow-step b { display: block; margin-bottom: 2px; color: #185fa5; font: 700 11px "Courier New", monospace; }
+  .flow-arrow { color: #aaa89f; }
+  .table-title { display: flex; justify-content: space-between; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .count { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 8px 9px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 11px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .checked-null { background: #faeeda; color: #8a5a08; }
+  .chosen { background: #eaf3de; color: #27500a; font-weight: 700; }
+  .not-checked { color: #bbb9b2; opacity: .55; }
+  .cleaned { background: #faeeda; color: #8a5a08; text-decoration: line-through; }
+  .result-cell { border-left: 2px solid #639922; background: #f5faef; color: #27500a; font-weight: 700; }
+  .null-badge, .empty-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font: italic 700 10px "Courier New", monospace;
+  }
+  .null-badge { background: #faeeda; color: #633806; }
+  .empty-badge { background: #f0efe8; color: #77756f; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 720px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .controls { grid-template-columns: 1fr; }
+    .explain-flow { grid-template-columns: 1fr; }
+    .flow-arrow { transform: rotate(90deg); text-align: center; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>COALESCE и NULLIF</h1>
+  <p class="intro"><code>COALESCE</code> подставляет первое известное значение, а <code>NULLIF</code> превращает выбранное значение в NULL. Вместе они помогают очищать данные и задавать запасной вариант.</p>
+
+  <div id="tabs" class="tabs">
+    <button class="tab active" type="button" data-mode="coalesce">COALESCE</button>
+    <button class="tab" type="button" data-mode="nullif">NULLIF</button>
+    <button class="tab" type="button" data-mode="together">Вместе</button>
+  </div>
+
+  <div id="hint" class="hint"></div>
+  <section id="controls" class="controls"></section>
+  <div id="sql" class="sql"></div>
+  <div id="explain-flow" class="explain-flow"></div>
+
+  <div class="table-title"><span id="table-title">Как вычисляется результат</span><span id="table-note" class="count"></span></div>
+  <div class="table-wrap"><table><thead id="table-head"></thead><tbody id="table-body"></tbody></table></div>
+
+  <p class="note"><b>Важно:</b> пустая строка <code>''</code> не равна NULL. Если её нужно считать отсутствующим значением, сначала преобразуй её через <code>NULLIF(value, '')</code>.</p>
+</main>
+
+<script>
+const rows = [
+  { user_id: 'u1', profile_city: 'Москва', delivery_city: null, registration_city: 'Москва' },
+  { user_id: 'u2', profile_city: '', delivery_city: 'Казань', registration_city: 'Самара' },
+  { user_id: 'u3', profile_city: null, delivery_city: '', registration_city: 'Пермь' },
+  { user_id: 'u4', profile_city: null, delivery_city: null, registration_city: null },
+  { user_id: 'u5', profile_city: 'unknown', delivery_city: 'Омск', registration_city: null },
+  { user_id: 'u6', profile_city: null, delivery_city: 'unknown', registration_city: 'Тула' },
+];
+
+const labels = {
+  profile_city: 'profile_city',
+  delivery_city: 'delivery_city',
+  registration_city: 'registration_city',
+};
+
+let mode = 'coalesce';
+let priority = ['profile_city', 'delivery_city', 'registration_city'];
+let useFallback = true;
+let nullifField = 'profile_city';
+let sentinel = '';
+
+const display = (value) => value === null
+  ? '<span class="null-badge">NULL</span>'
+  : value === '' ? '<span class="empty-badge">пустая строка</span>' : value;
+const sqlLiteral = (value) => `<span class="value">'${value}'</span>`;
+
+function firstKnown(values) {
+  const found = values.find((value) => value !== null);
+  return found === undefined ? (useFallback ? 'Неизвестно' : null) : found;
+}
+
+function clean(value) {
+  return value === sentinel ? null : value;
+}
+
+function renderPriority() {
+  return `<div class="priority">${priority.map((field, index) => `<button class="priority-button" type="button" data-priority="${field}"><span class="priority-number">${index + 1}</span>${field}</button>`).join('')}</div>`;
+}
+
+function fallbackControl() {
+  return `<div class="toggle-row"><span>Последний аргумент<br><code>'Неизвестно'</code></span><button id="fallback-toggle" class="switch ${useFallback ? 'on' : ''}" type="button" aria-pressed="${useFallback}"></button></div>`;
+}
+
+function renderControls() {
+  const root = document.getElementById('controls');
+  if (mode === 'coalesce') {
+    root.innerHTML = `<div class="control"><div class="control-title">Приоритет · клик поднимает источник на первое место</div>${renderPriority()}</div><div class="control"><div class="control-title">Запасное значение</div>${fallbackControl()}</div>`;
+  } else if (mode === 'nullif') {
+    root.innerHTML = `<div class="control"><div class="control-title">Первый аргумент</div><select id="nullif-field">${priority.map((field) => `<option value="${field}">${field}</option>`).join('')}</select></div><div class="control"><div class="control-title">Значение для замены</div><select id="sentinel"><option value="">пустая строка ''</option><option value="unknown">'unknown'</option></select></div>`;
+    document.getElementById('nullif-field').value = nullifField;
+    document.getElementById('sentinel').value = sentinel;
+  } else {
+    root.innerHTML = `<div class="control"><div class="control-title">Приоритет после очистки</div>${renderPriority()}</div><div class="control"><div class="control-title">NULLIF и запасное значение</div><select id="sentinel"><option value="">пустую строку ''</option><option value="unknown">'unknown'</option></select><div style="margin-top:8px">${fallbackControl()}</div></div>`;
+    document.getElementById('sentinel').value = sentinel;
+  }
+
+  root.querySelectorAll('[data-priority]').forEach((button) => button.addEventListener('click', () => {
+    priority = [button.dataset.priority, ...priority.filter((field) => field !== button.dataset.priority)];
+    render();
+  }));
+  const fallbackToggle = document.getElementById('fallback-toggle');
+  if (fallbackToggle) fallbackToggle.addEventListener('click', () => { useFallback = !useFallback; render(); });
+  const fieldSelect = document.getElementById('nullif-field');
+  if (fieldSelect) fieldSelect.addEventListener('change', (event) => { nullifField = event.target.value; renderDynamic(); });
+  const sentinelSelect = document.getElementById('sentinel');
+  if (sentinelSelect) sentinelSelect.addEventListener('change', (event) => { sentinel = event.target.value; renderDynamic(); });
+}
+
+function renderCoalesce() {
+  const args = [...priority.map((field) => `<span class="column">${field}</span>`), ...(useFallback ? [sqlLiteral('Неизвестно')] : [])];
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> user_id,\n       <span class="fn">coalesce</span>(${args.join(', ')}) <span class="kw">AS</span> city\n<span class="kw">FROM</span> users`;
+  document.getElementById('explain-flow').innerHTML = `<div class="flow-step"><b>1</b>проверить ${priority[0]}</div><div class="flow-arrow">→</div><div class="flow-step"><b>2</b>идти слева направо</div><div class="flow-arrow">→</div><div class="flow-step"><b>3</b>взять первое не-NULL</div>`;
+  document.getElementById('table-head').innerHTML = `<tr><th>user_id</th>${priority.map((field, index) => `<th>${index + 1}. ${field}</th>`).join('')}<th>city</th></tr>`;
+  document.getElementById('table-body').innerHTML = rows.map((row) => {
+    const values = priority.map((field) => row[field]);
+    const chosenIndex = values.findIndex((value) => value !== null);
+    const result = firstKnown(values);
+    const cells = priority.map((field, index) => {
+      const cellClass = chosenIndex === index ? 'chosen' : chosenIndex === -1 || index < chosenIndex ? 'checked-null' : 'not-checked';
+      return `<td class="${cellClass}">${display(row[field])}</td>`;
+    }).join('');
+    return `<tr><td>${row.user_id}</td>${cells}<td class="result-cell">${display(result)}</td></tr>`;
+  }).join('');
+  document.getElementById('table-note').textContent = 'зелёное значение выбрано первым';
+}
+
+function renderNullif() {
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> user_id, ${nullifField},\n       <span class="fn">nullif</span>(<span class="column">${nullifField}</span>, ${sqlLiteral(sentinel)}) <span class="kw">AS</span> cleaned_city\n<span class="kw">FROM</span> users`;
+  document.getElementById('explain-flow').innerHTML = `<div class="flow-step"><b>value1</b>${nullifField}</div><div class="flow-arrow">= ?</div><div class="flow-step"><b>value2</b>${sentinel === '' ? "''" : `'${sentinel}'`}</div><div class="flow-arrow">→</div><div class="flow-step"><b>результат</b>NULL или value1</div>`;
+  document.getElementById('table-head').innerHTML = '<tr><th>user_id</th><th>value1</th><th>value2</th><th>равны?</th><th>cleaned_city</th></tr>';
+  document.getElementById('table-body').innerHTML = rows.map((row) => {
+    const source = row[nullifField];
+    const equal = source !== null && source === sentinel;
+    const result = clean(source);
+    return `<tr><td>${row.user_id}</td><td>${display(source)}</td><td>${display(sentinel)}</td><td>${source === null ? 'UNKNOWN' : equal ? 'TRUE' : 'FALSE'}</td><td class="${equal ? 'cleaned' : 'result-cell'}">${display(result)}</td></tr>`;
+  }).join('');
+  document.getElementById('table-note').textContent = 'при равенстве результат становится NULL';
+}
+
+function renderTogether() {
+  const wrapped = priority.map((field) => `<span class="fn">nullif</span>(<span class="column">${field}</span>, ${sqlLiteral(sentinel)})`);
+  if (useFallback) wrapped.push(sqlLiteral('Неизвестно'));
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> user_id,\n       <span class="fn">coalesce</span>(\n         ${wrapped.join(',\n         ')}\n       ) <span class="kw">AS</span> city\n<span class="kw">FROM</span> users`;
+  document.getElementById('explain-flow').innerHTML = `<div class="flow-step"><b>NULLIF</b>очистить служебные значения</div><div class="flow-arrow">→</div><div class="flow-step"><b>COALESCE</b>найти первое не-NULL</div><div class="flow-arrow">→</div><div class="flow-step"><b>fallback</b>${useFallback ? 'подставить «Неизвестно»' : 'может остаться NULL'}</div>`;
+  document.getElementById('table-head').innerHTML = `<tr><th>user_id</th>${priority.map((field, index) => `<th>${index + 1}. ${field}</th>`).join('')}<th>city</th></tr>`;
+  document.getElementById('table-body').innerHTML = rows.map((row) => {
+    const cleaned = priority.map((field) => clean(row[field]));
+    const chosenIndex = cleaned.findIndex((value) => value !== null);
+    const result = firstKnown(cleaned);
+    const cells = priority.map((field, index) => {
+      const wasCleaned = row[field] !== null && cleaned[index] === null;
+      const cellClass = wasCleaned ? 'cleaned' : chosenIndex === index ? 'chosen' : cleaned[index] === null ? 'checked-null' : 'not-checked';
+      return `<td class="${cellClass}">${display(row[field])}</td>`;
+    }).join('');
+    return `<tr><td>${row.user_id}</td>${cells}<td class="result-cell">${display(result)}</td></tr>`;
+  }).join('');
+  document.getElementById('table-note').textContent = 'жёлтые значения очищены через NULLIF';
+}
+
+function renderDynamic() {
+  if (mode === 'coalesce') {
+    document.getElementById('hint').innerHTML = '<b>COALESCE</b> идёт по аргументам слева направо и возвращает первое значение, которое не равно NULL. Более поздние аргументы уже не вычисляются.';
+    renderCoalesce();
+  } else if (mode === 'nullif') {
+    document.getElementById('hint').innerHTML = '<b>NULLIF(value1, value2)</b> возвращает NULL, если аргументы равны. В остальных случаях возвращается value1.';
+    renderNullif();
+  } else {
+    document.getElementById('hint').innerHTML = '<b>NULLIF + COALESCE</b>: сначала превращаем пустые или служебные строки в NULL, затем выбираем первый нормальный источник.';
+    renderTogether();
+  }
+}
+
+function render() {
+  document.querySelectorAll('[data-mode]').forEach((button) => button.classList.toggle('active', button.dataset.mode === mode));
+  renderControls();
+  renderDynamic();
+}
+
+document.getElementById('tabs').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-mode]');
+  if (!button) return;
+  mode = button.dataset.mode;
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

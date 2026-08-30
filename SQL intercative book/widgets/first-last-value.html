@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIRST_VALUE() и LAST_VALUE()</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .controls { display: grid; grid-template-columns: 1.15fr .85fr; gap: 10px; margin-bottom: 14px; }
+  .control { padding: 12px; border: 1px solid #e5e4de; border-radius: 9px; background: #fafaf8; }
+  .control-title { margin-bottom: 8px; color: #85837c; font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .toggle { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; padding: 3px; border-radius: 8px; background: #ecebe6; }
+  .toggle button {
+    padding: 7px 8px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #77756f;
+    font: 700 10px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .toggle button.active { background: #fff; color: #0c447c; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  .sql {
+    margin-bottom: 16px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 12px/1.7 "Courier New", monospace;
+    white-space: pre;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .frame-sql { padding: 2px 4px; border-radius: 4px; background: rgba(166,227,161,.1); }
+  .section-title { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .section-meta { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .timeline-wrap { margin-bottom: 16px; padding: 13px; border: 1px solid #e5e4de; border-radius: 11px; background: #fafaf8; overflow-x: auto; }
+  .timeline { display: grid; grid-template-columns: repeat(4, minmax(125px, 1fr)); gap: 7px; min-width: 580px; }
+  .event {
+    position: relative;
+    padding: 12px 8px 10px;
+    border: 1px solid #e5e4de;
+    border-radius: 9px;
+    background: #fff;
+    text-align: center;
+    cursor: pointer;
+  }
+  .event.outside { opacity: .28; }
+  .event.inside { border-color: #b5d88a; background: #f1f8e9; }
+  .event.current { border: 2px solid #185fa5; padding: 11px 7px 9px; background: #e6f1fb; }
+  .event.first::before, .event.last::after {
+    position: absolute;
+    top: -7px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    color: #fff;
+    font: 700 7px "Courier New", monospace;
+  }
+  .event.first::before { content: "FIRST"; left: 3px; background: #185fa5; }
+  .event.last::after { content: "LAST"; right: 3px; background: #8b2fc9; }
+  .event-time { margin-bottom: 5px; color: #85837c; font: 9px "Courier New", monospace; }
+  .event-name { font-size: 13px; font-weight: 800; }
+  .event-position { margin-top: 5px; color: #999790; font-size: 8px; }
+  .layout { display: grid; grid-template-columns: 1.2fr .8fr; gap: 14px; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th, td { padding: 8px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 9.5px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .result-row { cursor: pointer; }
+  .result-row:hover td { background: #f3f8fd; }
+  .result-row.selected td { background: #e6f1fb; color: #0c447c; font-weight: 700; }
+  .result-row.selected td:first-child { box-shadow: inset 2px 0 #185fa5; }
+  .partition-start td { border-top: 2px solid #d3d1c7; }
+  .first-cell { color: #185fa5; font-weight: 750; }
+  .last-cell { color: #8b2fc9; font-weight: 750; }
+  .side { display: flex; flex-direction: column; gap: 10px; }
+  .explain { padding: 14px; border: 1px solid #e5e4de; border-radius: 10px; background: #fafaf8; }
+  .selected-title { margin-bottom: 4px; font-size: 17px; font-weight: 800; }
+  .selected-meta { margin-bottom: 12px; color: #77756f; font: 10px "Courier New", monospace; }
+  .values { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .value-card { padding: 10px; border-radius: 8px; }
+  .value-card.first-card { border: 1px solid #b8d4ee; background: #f0f6fc; }
+  .value-card.last-card { border: 1px solid #d6bee9; background: #f7f2fb; }
+  .value-label { margin-bottom: 5px; font: 700 9px "Courier New", monospace; }
+  .value { overflow-wrap: anywhere; font-size: 16px; font-weight: 850; }
+  .first-card .value { color: #185fa5; }
+  .last-card .value { color: #8b2fc9; }
+  .explain-text { margin-top: 11px; color: #5f5e5a; font-size: 12px; line-height: 1.55; }
+  .warning { padding: 12px; border-left: 3px solid #ef9f27; border-radius: 7px; background: #fff8e7; color: #725100; font-size: 11.5px; line-height: 1.55; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 780px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .controls, .layout { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>FIRST_VALUE() и LAST_VALUE()</h1>
+  <p class="intro">Обе функции читают значение из границ текущей оконной рамки. <code>FIRST_VALUE()</code> берёт первую строку рамки, <code>LAST_VALUE()</code> — последнюю.</p>
+
+  <section class="controls">
+    <div class="control">
+      <div class="control-title">Конец рамки</div>
+      <div id="frame-toggle" class="toggle">
+        <button class="active" type="button" data-frame="current">до CURRENT ROW</button>
+        <button type="button" data-frame="full">вся партиция</button>
+      </div>
+    </div>
+    <div class="control">
+      <div class="control-title">Порядок событий</div>
+      <div id="direction-toggle" class="toggle">
+        <button class="active" type="button" data-direction="ASC">ASC</button>
+        <button type="button" data-direction="DESC">DESC</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="sql" class="sql"></div>
+
+  <div class="section-title"><span id="timeline-title">Рамка пользователя</span><span class="section-meta">нажми на событие</span></div>
+  <section class="timeline-wrap"><div id="timeline" class="timeline"></div></section>
+
+  <section class="layout">
+    <div>
+      <div class="section-title"><span>Результат для всех событий</span><span class="section-meta">PARTITION BY user_id</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>user</th><th>event_time</th><th>event_name</th><th>first_value</th><th>last_value</th></tr></thead>
+        <tbody id="result-body"></tbody>
+      </table></div>
+    </div>
+    <aside class="side">
+      <section id="explain" class="explain"></section>
+      <section id="warning" class="warning"></section>
+    </aside>
+  </section>
+
+  <p class="note"><b>Без явной рамки:</b> окно с <code>ORDER BY</code> в Trino по умолчанию заканчивается на последнем peer текущей строки. При уникальном <code>event_time</code> результат похож на режим «до CURRENT ROW».</p>
+</main>
+
+<script>
+const events = [
+  { id: 1, user_id: 101, user: 'Анна', event_time: '2026-08-01 09:10', event_name: 'signup' },
+  { id: 2, user_id: 101, user: 'Анна', event_time: '2026-08-03 12:40', event_name: 'search' },
+  { id: 3, user_id: 101, user: 'Анна', event_time: '2026-08-05 18:20', event_name: 'contact' },
+  { id: 4, user_id: 101, user: 'Анна', event_time: '2026-08-09 20:05', event_name: 'purchase' },
+  { id: 5, user_id: 102, user: 'Борис', event_time: '2026-08-02 10:15', event_name: 'signup' },
+  { id: 6, user_id: 102, user: 'Борис', event_time: '2026-08-04 14:30', event_name: 'favorite' },
+  { id: 7, user_id: 102, user: 'Борис', event_time: '2026-08-08 17:45', event_name: 'contact' },
+  { id: 8, user_id: 102, user: 'Борис', event_time: '2026-08-12 11:25', event_name: 'purchase' },
+];
+
+let frameMode = 'current';
+let direction = 'ASC';
+let selectedId = 3;
+
+function orderedPartition(userId) {
+  return events
+    .filter((event) => event.user_id === userId)
+    .sort((a, b) => direction === 'ASC' ? a.event_time.localeCompare(b.event_time) : b.event_time.localeCompare(a.event_time));
+}
+
+function detailsFor(event) {
+  const partition = orderedPartition(event.user_id);
+  const currentIndex = partition.findIndex((row) => row.id === event.id);
+  const frame = frameMode === 'full' ? partition : partition.slice(0, currentIndex + 1);
+  return {
+    partition,
+    frame,
+    currentIndex,
+    firstValue: frame[0].event_name,
+    lastValue: frame[frame.length - 1].event_name,
+  };
+}
+
+function resultRows() {
+  const users = [...new Set(events.map((event) => event.user_id))];
+  return users.flatMap((userId) => orderedPartition(userId).map((event, index) => ({
+    ...event,
+    ...detailsFor(event),
+    partitionStart: index === 0,
+  })));
+}
+
+function windowSpec() {
+  const end = frameMode === 'full' ? 'UNBOUNDED FOLLOWING' : 'CURRENT ROW';
+  return `<span class="kw">PARTITION BY</span> user_id\n        <span class="kw">ORDER BY</span> event_time ${direction}\n        <span class="frame-sql"><span class="kw">ROWS BETWEEN</span> UNBOUNDED PRECEDING <span class="kw">AND</span> ${end}</span>`;
+}
+
+function renderSql() {
+  const spec = windowSpec();
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span>\n    user_id,\n    event_time,\n    event_name,\n    <span class="fn">FIRST_VALUE(event_name)</span> <span class="kw">OVER</span> (\n        ${spec}\n    ) <span class="kw">AS</span> first_event,\n    <span class="fn">LAST_VALUE(event_name)</span> <span class="kw">OVER</span> (\n        ${spec}\n    ) <span class="kw">AS</span> last_event\n<span class="kw">FROM</span> events\n<span class="kw">ORDER BY</span> user_id, event_time ${direction}`;
+}
+
+function renderTimeline() {
+  const selected = events.find((event) => event.id === selectedId);
+  const details = detailsFor(selected);
+  const frameIds = new Set(details.frame.map((event) => event.id));
+  const firstId = details.frame[0].id;
+  const lastId = details.frame[details.frame.length - 1].id;
+  document.getElementById('timeline-title').textContent = `Рамка · ${selected.user}`;
+  document.getElementById('timeline').innerHTML = details.partition.map((event, index) => {
+    const classes = ['event', frameIds.has(event.id) ? 'inside' : 'outside', event.id === selectedId ? 'current' : '', event.id === firstId ? 'first' : '', event.id === lastId ? 'last' : ''].filter(Boolean).join(' ');
+    return `<button class="${classes}" type="button" data-id="${event.id}"><div class="event-time">${event.event_time.slice(5)}</div><div class="event-name">${event.event_name}</div><div class="event-position">позиция ${index + 1}</div></button>`;
+  }).join('');
+}
+
+function renderTable() {
+  document.getElementById('result-body').innerHTML = resultRows().map((row, index) => {
+    const classes = ['result-row', row.id === selectedId ? 'selected' : '', index > 0 && row.partitionStart ? 'partition-start' : ''].filter(Boolean).join(' ');
+    return `<tr class="${classes}" data-id="${row.id}"><td>${row.user}</td><td>${row.event_time}</td><td>${row.event_name}</td><td class="first-cell">${row.firstValue}</td><td class="last-cell">${row.lastValue}</td></tr>`;
+  }).join('');
+}
+
+function renderExplain() {
+  const selected = events.find((event) => event.id === selectedId);
+  const details = detailsFor(selected);
+  document.getElementById('explain').innerHTML = `
+    <div class="selected-title">${selected.event_name}</div>
+    <div class="selected-meta">${selected.user} · ${selected.event_time}</div>
+    <div class="values">
+      <div class="value-card first-card"><div class="value-label">FIRST_VALUE</div><div class="value">${details.firstValue}</div></div>
+      <div class="value-card last-card"><div class="value-label">LAST_VALUE</div><div class="value">${details.lastValue}</div></div>
+    </div>
+    <div class="explain-text">В рамке ${details.frame.length} из ${details.partition.length} событий. Порядок ${direction}: первой считается ${details.frame[0].event_name}, последней — ${details.frame[details.frame.length - 1].event_name}.</div>`;
+}
+
+function renderWarning() {
+  document.getElementById('warning').innerHTML = frameMode === 'current'
+    ? '<b>Почему LAST_VALUE меняется по строкам?</b><br>Рамка заканчивается на текущей строке, поэтому её последнее значение обычно и есть текущее событие.'
+    : `<b>Вся партиция доступна.</b><br>При ${direction} функция LAST_VALUE возвращает одно и то же крайнее событие пользователя для всех его строк.`;
+}
+
+function render() {
+  document.querySelectorAll('[data-frame]').forEach((button) => button.classList.toggle('active', button.dataset.frame === frameMode));
+  document.querySelectorAll('[data-direction]').forEach((button) => button.classList.toggle('active', button.dataset.direction === direction));
+  renderSql();
+  renderTimeline();
+  renderTable();
+  renderExplain();
+  renderWarning();
+}
+
+document.getElementById('frame-toggle').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-frame]');
+  if (!button) return;
+  frameMode = button.dataset.frame;
+  render();
+});
+
+document.getElementById('direction-toggle').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-direction]');
+  if (!button) return;
+  direction = button.dataset.direction;
+  render();
+});
+
+function selectEvent(event) {
+  const element = event.target.closest('[data-id]');
+  if (!element) return;
+  selectedId = Number(element.dataset.id);
+  render();
+}
+
+document.getElementById('timeline').addEventListener('click', selectEvent);
+document.getElementById('result-body').addEventListener('click', selectEvent);
+render();
+</script>
+</body>
+</html>

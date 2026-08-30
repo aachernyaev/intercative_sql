@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Интерактивный учебник SQL</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="book-layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">SQL</span>
+        <div>
+          <div class="brand-title">Интерактивный учебник</div>
+          <div class="brand-subtitle">Смотреть, менять, понимать</div>
+        </div>
+      </div>
+
+      <nav id="book-nav" class="book-nav" aria-label="Разделы учебника"></nav>
+    </aside>
+
+    <main class="lesson">
+      <header class="lesson-header">
+        <div id="lesson-kicker" class="lesson-kicker"></div>
+        <h1 id="lesson-title"></h1>
+        <p id="lesson-description" class="lesson-description"></p>
+        <div id="lesson-points" class="lesson-points"></div>
+      </header>
+
+      <section class="widget-card" aria-labelledby="widget-label">
+        <div class="widget-bar">
+          <div>
+            <div id="widget-label" class="widget-label">Интерактив</div>
+            <div class="widget-hint">Меняй параметры внутри виджета и наблюдай за результатом</div>
+          </div>
+          <a id="open-widget" class="open-widget" href="#" target="_blank" rel="noopener">Открыть отдельно ↗</a>
+        </div>
+        <iframe id="widget-frame" title="Интерактивный SQL-виджет"></iframe>
+        <div id="widget-empty" class="widget-empty" hidden>
+          <div class="widget-empty-mark">SQL</div>
+          <div>
+            <div class="widget-empty-title">Тема запланирована</div>
+            <div class="widget-empty-text">Описание и интерактивный виджет появятся здесь позже.</div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="lesson-footer">
+        <button id="previous-lesson" class="lesson-button" type="button">← Предыдущая тема</button>
+        <span id="lesson-position" class="lesson-position"></span>
+        <button id="next-lesson" class="lesson-button lesson-button-primary" type="button">Следующая тема →</button>
+      </footer>
+    </main>
+  </div>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNION ALL и UNION</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .controls { display: grid; grid-template-columns: .8fr 1.2fr .9fr; gap: 10px; margin-bottom: 14px; }
+  .control {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #e5e4de;
+    border-radius: 9px;
+    background: #fafaf8;
+  }
+  .control-title { margin-bottom: 8px; color: #85837c; font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .mode-buttons { display: flex; gap: 6px; }
+  .mode-button {
+    flex: 1;
+    padding: 7px 5px;
+    border: 1px solid #d3d1c7;
+    border-radius: 7px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 10px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .mode-button.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    padding: 7px 9px;
+    border: 1px solid #d3d1c7;
+    border-radius: 7px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 11px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .chip.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; font-weight: 700; }
+  .toggle-row { display: flex; min-height: 30px; align-items: center; justify-content: space-between; gap: 10px; color: #5f5e5a; font-size: 11px; }
+  .switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 999px;
+    background: #d3d1c7;
+    cursor: pointer;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.18);
+    transition: .18s;
+  }
+  .switch.on { background: #185fa5; }
+  .switch.on::after { left: 23px; }
+  .hint {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .sql {
+    margin-bottom: 16px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 12px/1.75 "Courier New", monospace;
+    white-space: pre;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .set-kw { color: #cba6f7; font-weight: 800; }
+  .column { color: #f9e2af; }
+  .value { color: #a6e3a1; }
+  .sources { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; margin-bottom: 16px; }
+  .union-mark { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid #85b7eb; border-radius: 50%; background: #e6f1fb; color: #0c447c; font-size: 19px; font-weight: 700; }
+  .section-title { display: flex; justify-content: space-between; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .section-meta { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 10px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .selected { background: #edf5fc !important; color: #0c447c; font-weight: 700; }
+  .not-selected { color: #bbb9b2; opacity: .45; }
+  .duplicate td.selected, .duplicate td.source-column { background: #faeeda !important; color: #8a5a08; }
+  .duplicate-badge { display: inline-block; margin-left: 4px; padding: 1px 4px; border-radius: 4px; background: #efc980; color: #633806; font-size: 8px; font-weight: 700; }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .stat { padding: 9px; border: 1px solid #e5e4de; border-radius: 8px; background: #fafaf8; color: #77756f; font-size: 10px; text-align: center; }
+  .stat b { display: block; color: #2c2c2a; font: 800 17px "Courier New", monospace; }
+  .stat.result b { color: #3b6d11; }
+  .stat-sign { color: #185fa5; font: 800 16px "Courier New", monospace; }
+  .result-row td { background: #f5faef; }
+  .result-row.duplicate-result td { background: #faeeda; color: #8a5a08; }
+  .source-a { color: #0c447c; font-weight: 700; }
+  .source-b { color: #5b2d8e; font-weight: 700; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 720px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .controls { grid-template-columns: 1fr; }
+    .sources { grid-template-columns: 1fr; }
+    .union-mark { margin: 0 auto; }
+    .stats { grid-template-columns: 1fr; }
+    .stat-sign { text-align: center; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>UNION ALL и UNION</h1>
+  <p class="intro">Операции <code>UNION</code> объединяют строки двух запросов с одинаковой структурой. Разница — в обработке повторов.</p>
+
+  <div class="controls">
+    <section class="control">
+      <div class="control-title">Операция</div>
+      <div class="mode-buttons"><button class="mode-button active" type="button" data-mode="all">UNION ALL</button><button class="mode-button" type="button" data-mode="distinct">UNION</button></div>
+    </section>
+    <section class="control">
+      <div class="control-title">Столбцы обоих SELECT</div>
+      <div id="column-chips" class="chips"></div>
+    </section>
+    <section class="control">
+      <div class="control-title">Различать источник</div>
+      <div class="toggle-row"><span>Добавить столбец <code>source</code></span><button id="source-toggle" class="switch" type="button" aria-pressed="false"></button></div>
+    </section>
+  </div>
+
+  <div id="hint" class="hint"></div>
+  <div id="sql" class="sql"></div>
+
+  <div class="sources">
+    <section>
+      <div class="section-title"><span>users_august</span><span class="section-meta">первый SELECT</span></div>
+      <div class="table-wrap"><table><thead id="head-a"></thead><tbody id="body-a"></tbody></table></div>
+    </section>
+    <div class="union-mark">∪</div>
+    <section>
+      <div class="section-title"><span>users_september</span><span class="section-meta">второй SELECT</span></div>
+      <div class="table-wrap"><table><thead id="head-b"></thead><tbody id="body-b"></tbody></table></div>
+    </section>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b id="count-a"></b>строк слева</div><div class="stat-sign">+</div>
+    <div class="stat"><b id="count-b"></b>строк справа</div><div id="result-sign" class="stat-sign">=</div>
+    <div class="stat result"><b id="count-result"></b>строк результата</div>
+  </div>
+
+  <div class="section-title"><span>Результат объединения</span><span id="result-meta" class="section-meta"></span></div>
+  <div class="table-wrap"><table><thead id="result-head"></thead><tbody id="result-body"></tbody></table></div>
+
+  <p class="note"><b>Правила:</b> оба SELECT должны возвращать одинаковое количество столбцов в одинаковом порядке и с совместимыми типами. Без общего <code>ORDER BY</code> порядок итоговых строк не гарантирован.</p>
+</main>
+
+<script>
+const august = [
+  { user_id: 'u1', city: 'Москва' },
+  { user_id: 'u2', city: 'Казань' },
+  { user_id: 'u3', city: 'Москва' },
+  { user_id: 'u4', city: 'Самара' },
+];
+
+const september = [
+  { user_id: 'u2', city: 'Казань' },
+  { user_id: 'u3', city: 'Санкт-Петербург' },
+  { user_id: 'u5', city: 'Москва' },
+  { user_id: 'u5', city: 'Москва' },
+];
+
+const allColumns = ['user_id', 'city'];
+let mode = 'all';
+let selected = new Set(['user_id', 'city']);
+let includeSource = false;
+
+function outputColumns() {
+  return [...allColumns.filter((column) => selected.has(column)), ...(includeSource ? ['source'] : [])];
+}
+
+function projected(sourceRows, sourceName) {
+  const columns = outputColumns();
+  return sourceRows.map((row) => Object.fromEntries(columns.map((column) => [column, column === 'source' ? sourceName : row[column]])));
+}
+
+function rowKey(row) {
+  return outputColumns().map((column) => row[column]).join('\u001f');
+}
+
+function combinedRows() {
+  const combined = [...projected(august, 'august'), ...projected(september, 'september')];
+  if (mode === 'all') return combined;
+  const seen = new Set();
+  return combined.filter((row) => {
+    const key = rowKey(row);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function duplicateCounts() {
+  const counts = new Map();
+  [...projected(august, 'august'), ...projected(september, 'september')].forEach((row) => counts.set(rowKey(row), (counts.get(rowKey(row)) || 0) + 1));
+  return counts;
+}
+
+function renderControls() {
+  document.querySelectorAll('[data-mode]').forEach((button) => button.classList.toggle('active', button.dataset.mode === mode));
+  document.getElementById('column-chips').innerHTML = allColumns.map((column) => `<button class="chip ${selected.has(column) ? 'active' : ''}" type="button" data-column="${column}">${column}</button>`).join('');
+  const toggle = document.getElementById('source-toggle');
+  toggle.classList.toggle('on', includeSource);
+  toggle.setAttribute('aria-pressed', String(includeSource));
+}
+
+function selectList(sourceName) {
+  const columns = allColumns.filter((column) => selected.has(column));
+  const parts = columns.map((column) => `<span class="column">${column}</span>`);
+  if (includeSource) parts.push(`<span class="value">'${sourceName}'</span> <span class="kw">AS</span> source`);
+  return parts.length ? parts.join(', ') : '<span style="color:#f38ba8">-- выбери столбец</span>';
+}
+
+function renderSql() {
+  const operation = mode === 'all' ? 'UNION ALL' : 'UNION';
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> ${selectList('august')}\n<span class="kw">FROM</span> users_august\n\n<span class="set-kw">${operation}</span>\n\n<span class="kw">SELECT</span> ${selectList('september')}\n<span class="kw">FROM</span> users_september`;
+}
+
+function renderSourceTable(rows, sourceName, headId, bodyId) {
+  const counts = duplicateCounts();
+  const projectedRows = projected(rows, sourceName);
+  document.getElementById(headId).innerHTML = `<tr>${allColumns.map((column) => `<th class="${selected.has(column) ? 'selected' : 'not-selected'}">${column}</th>`).join('')}${includeSource ? '<th class="selected">source</th>' : ''}</tr>`;
+  document.getElementById(bodyId).innerHTML = rows.map((row, index) => {
+    const duplicate = outputColumns().length > 0 && counts.get(rowKey(projectedRows[index])) > 1;
+    return `<tr class="${duplicate ? 'duplicate' : ''}">${allColumns.map((column) => `<td class="${selected.has(column) ? 'selected' : 'not-selected'}">${row[column]}${duplicate && selected.has(column) ? '<span class="duplicate-badge">повтор</span>' : ''}</td>`).join('')}${includeSource ? `<td class="selected source-column ${sourceName === 'august' ? 'source-a' : 'source-b'}">${sourceName}</td>` : ''}</tr>`;
+  }).join('');
+}
+
+function renderResult() {
+  const columns = outputColumns();
+  const result = columns.length ? combinedRows() : [];
+  const counts = duplicateCounts();
+  document.getElementById('count-a').textContent = columns.length ? august.length : 0;
+  document.getElementById('count-b').textContent = columns.length ? september.length : 0;
+  document.getElementById('count-result').textContent = result.length;
+  document.getElementById('result-meta').textContent = `${columns.length} столбца · ${result.length} строк`;
+
+  if (!columns.length) {
+    document.getElementById('result-head').innerHTML = '';
+    document.getElementById('result-body').innerHTML = '<tr><td style="padding:28px;text-align:center;color:#999790">Выбери хотя бы один столбец</td></tr>';
+    return;
+  }
+
+  document.getElementById('result-head').innerHTML = `<tr>${columns.map((column) => `<th>${column}</th>`).join('')}</tr>`;
+  document.getElementById('result-body').innerHTML = result.map((row) => {
+    const duplicate = mode === 'all' && counts.get(rowKey(row)) > 1;
+    return `<tr class="result-row ${duplicate ? 'duplicate-result' : ''}">${columns.map((column) => `<td class="${column === 'source' ? (row[column] === 'august' ? 'source-a' : 'source-b') : ''}">${row[column]}${duplicate ? '<span class="duplicate-badge">повтор</span>' : ''}</td>`).join('')}</tr>`;
+  }).join('');
+}
+
+function renderHint() {
+  const columns = outputColumns();
+  if (!columns.length) {
+    document.getElementById('hint').innerHTML = 'Оба SELECT должны вернуть хотя бы один столбец.';
+    return;
+  }
+  const key = columns.map((column) => `<b>${column}</b>`).join(' + ');
+  document.getElementById('hint').innerHTML = mode === 'all'
+    ? `<b>UNION ALL</b> добавляет второй набор строк к первому и ничего не удаляет. Повторы по комбинации ${key} остаются.`
+    : `<b>UNION</b> оставляет только уникальные строки по комбинации ${key}. Добавление source меняет эту комбинацию.`;
+}
+
+function render() {
+  renderControls();
+  renderSql();
+  renderSourceTable(august, 'august', 'head-a', 'body-a');
+  renderSourceTable(september, 'september', 'head-b', 'body-b');
+  renderResult();
+  renderHint();
+}
+
+document.querySelector('.mode-buttons').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-mode]');
+  if (!button) return;
+  mode = button.dataset.mode;
+  render();
+});
+document.getElementById('column-chips').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-column]');
+  if (!button) return;
+  selected.has(button.dataset.column) ? selected.delete(button.dataset.column) : selected.add(button.dataset.column);
+  render();
+});
+document.getElementById('source-toggle').addEventListener('click', () => { includeSource = !includeSource; render(); });
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Топ-N внутри группы</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; padding: 28px 18px; background: #f5f5f3; color: #2c2c2a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .card { width: 100%; max-width: 1040px; margin: 0 auto; padding: 26px; border: 1px solid #e5e4de; border-radius: 16px; background: #fff; }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .controls { display: grid; grid-template-columns: 1fr .75fr .85fr; gap: 10px; margin-bottom: 14px; }
+  .control { padding: 12px; border: 1px solid #e5e4de; border-radius: 9px; background: #fafaf8; }
+  .control-title { margin-bottom: 8px; color: #85837c; font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .toggle { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; padding: 3px; border-radius: 8px; background: #ecebe6; }
+  .toggle button { padding: 7px 8px; border: 0; border-radius: 6px; background: transparent; color: #77756f; font: 700 10px "Courier New", monospace; cursor: pointer; }
+  .toggle button.active { background: #fff; color: #0c447c; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  select { width: 100%; padding: 8px 9px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fff; color: #373734; font: 11px "Courier New", monospace; }
+  .range-row { display: flex; align-items: center; gap: 10px; }
+  input[type="range"] { width: 100%; accent-color: #185fa5; }
+  .range-value { display: grid; place-items: center; min-width: 30px; height: 27px; border-radius: 7px; background: #e6f1fb; color: #0c447c; font: 800 12px "Courier New", monospace; }
+  .sql { margin-bottom: 16px; padding: 15px 17px; overflow-x: auto; border-radius: 11px; background: #1e1e2e; color: #cdd6f4; font: 12px/1.65 "Courier New", monospace; white-space: pre; }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .number { color: #fab387; }
+  .key-sql { color: #f9e2af; }
+  .section-title { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .section-meta { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .layout { display: grid; grid-template-columns: 1.2fr .8fr; gap: 14px; margin-bottom: 16px; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th, td { padding: 8px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 9.5px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .ranked-row.kept td { background: #f5faef; color: #3b6d11; }
+  .ranked-row.removed td { opacity: .3; }
+  .partition-start td { border-top: 2px solid #d3d1c7; }
+  .category { display: inline-flex; padding: 3px 7px; border-radius: 9px; font: 700 8px "Courier New", monospace; }
+  .category.auto { background: #e6f1fb; color: #0c447c; }
+  .category.realty { background: #eaf3de; color: #3b6d11; }
+  .category.goods { background: #faeeda; color: #7a4b00; }
+  .position { display: inline-grid; place-items: center; min-width: 23px; height: 23px; border-radius: 7px; background: #f0eaf8; color: #5b2d8e; font: 800 10px "Courier New", monospace; }
+  .side { display: flex; flex-direction: column; gap: 10px; }
+  .group-grid { display: grid; grid-template-columns: 1fr; gap: 7px; }
+  .group-card { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 11px; border: 1px solid #e5e4de; border-radius: 9px; background: #fafaf8; }
+  .group-name { font-size: 12px; font-weight: 800; }
+  .group-detail { margin-top: 3px; color: #85837c; font-size: 9.5px; }
+  .group-count { font-size: 20px; font-weight: 850; color: #3b6d11; }
+  .summary { padding: 12px; border-left: 3px solid #85b7eb; border-radius: 7px; background: #f3f8fd; color: #315c84; font-size: 11.5px; line-height: 1.55; }
+  .result-position { color: #5b2d8e; font-weight: 800; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 780px) { body { padding: 12px; } .card { padding: 18px; } .controls, .layout { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Топ-N внутри группы</h1>
+  <p class="intro">Сначала ранжируем строки отдельно внутри каждой категории через <code>PARTITION BY</code>, затем во внешнем запросе оставляем позиции от 1 до N.</p>
+
+  <section class="controls">
+    <div class="control">
+      <div class="control-title">Способ ранжирования</div>
+      <div id="function-toggle" class="toggle">
+        <button class="active" type="button" data-function="row_number">ROW_NUMBER</button>
+        <button type="button" data-function="rank">RANK</button>
+      </div>
+    </div>
+    <label class="control">
+      <div class="control-title">Топ-N</div>
+      <div class="range-row"><input id="n-range" type="range" min="1" max="4" value="2"><span id="n-value" class="range-value">2</span></div>
+    </label>
+    <label class="control">
+      <div class="control-title">Метрика</div>
+      <select id="metric-select">
+        <option value="revenue">revenue</option>
+        <option value="orders">orders</option>
+      </select>
+    </label>
+  </section>
+
+  <div id="sql" class="sql"></div>
+
+  <section class="layout">
+    <div>
+      <div class="section-title"><span>Ранжирование всех строк</span><span class="section-meta">зелёные проходят position ≤ N</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>category</th><th>item</th><th>revenue</th><th>orders</th><th id="position-header">row_number</th></tr></thead>
+        <tbody id="ranked-body"></tbody>
+      </table></div>
+    </div>
+    <aside class="side">
+      <div class="section-title"><span>Сколько строк вошло</span><span class="section-meta">по категориям</span></div>
+      <div id="group-grid" class="group-grid"></div>
+      <section id="summary" class="summary"></section>
+    </aside>
+  </section>
+
+  <div class="section-title"><span>Финальный результат</span><span id="result-meta" class="section-meta"></span></div>
+  <div id="result" class="table-wrap"></div>
+
+  <p class="note"><b>При ничьей:</b> <code>ROW_NUMBER()</code> всё равно оставляет ровно N строк благодаря дополнительной сортировке по <code>item_id</code>. <code>RANK()</code> даёт равным значениям одинаковую позицию, поэтому в результате может оказаться больше N строк.</p>
+</main>
+
+<script>
+const items = [
+  { item_id: 1, category: 'Auto', item: 'Sedan', revenue: 120, orders: 12 },
+  { item_id: 2, category: 'Auto', item: 'SUV', revenue: 100, orders: 8 },
+  { item_id: 3, category: 'Auto', item: 'Moto', revenue: 100, orders: 10 },
+  { item_id: 4, category: 'Auto', item: 'Van', revenue: 80, orders: 6 },
+  { item_id: 5, category: 'Realty', item: 'Flat', revenue: 150, orders: 10 },
+  { item_id: 6, category: 'Realty', item: 'House', revenue: 130, orders: 7 },
+  { item_id: 7, category: 'Realty', item: 'Room', revenue: 90, orders: 7 },
+  { item_id: 8, category: 'Realty', item: 'Office', revenue: 90, orders: 5 },
+  { item_id: 9, category: 'Goods', item: 'Phone', revenue: 140, orders: 14 },
+  { item_id: 10, category: 'Goods', item: 'Laptop', revenue: 140, orders: 11 },
+  { item_id: 11, category: 'Goods', item: 'Bike', revenue: 110, orders: 11 },
+  { item_id: 12, category: 'Goods', item: 'Sofa', revenue: 70, orders: 8 },
+];
+
+let functionName = 'row_number';
+let topN = 2;
+let metric = 'revenue';
+const categories = ['Auto', 'Goods', 'Realty'];
+
+function rankedRows() {
+  return categories.flatMap((category) => {
+    const rows = items
+      .filter((item) => item.category === category)
+      .sort((a, b) => b[metric] - a[metric] || a.item_id - b.item_id);
+    let currentRank = 0;
+    let previousValue = null;
+    return rows.map((row, index) => {
+      if (index === 0 || row[metric] !== previousValue) currentRank = index + 1;
+      const position = functionName === 'row_number' ? index + 1 : currentRank;
+      previousValue = row[metric];
+      return { ...row, position, partitionStart: index === 0 };
+    });
+  });
+}
+
+function resultRows() {
+  return rankedRows().filter((row) => row.position <= topN);
+}
+
+function renderSql() {
+  const functionSql = functionName === 'row_number' ? 'ROW_NUMBER' : 'RANK';
+  const tieBreaker = functionName === 'row_number' ? ', item_id' : '';
+  document.getElementById('sql').innerHTML = `<span class="kw">WITH</span> ranked <span class="kw">AS</span> (\n  <span class="kw">SELECT</span>\n      item_id, category, item, revenue, orders,\n      <span class="fn">${functionSql}()</span> <span class="kw">OVER</span> (\n          <span class="kw">PARTITION BY</span> category\n          <span class="kw">ORDER BY</span> <span class="key-sql">${metric}</span> <span class="kw">DESC</span>${tieBreaker}\n      ) <span class="kw">AS</span> position\n  <span class="kw">FROM</span> item_stats\n)\n<span class="kw">SELECT</span> item_id, category, item, revenue, orders, position\n<span class="kw">FROM</span> ranked\n<span class="kw">WHERE</span> position &lt;= <span class="number">${topN}</span>\n<span class="kw">ORDER BY</span> category, position, item_id`;
+}
+
+function renderRanked() {
+  const rows = rankedRows();
+  document.getElementById('position-header').textContent = functionName;
+  document.getElementById('ranked-body').innerHTML = rows.map((row, index) => {
+    const classes = ['ranked-row', row.position <= topN ? 'kept' : 'removed', index > 0 && row.partitionStart ? 'partition-start' : ''].filter(Boolean).join(' ');
+    return `<tr class="${classes}"><td><span class="category ${row.category.toLowerCase()}">${row.category}</span></td><td>${row.item}</td><td>${row.revenue}</td><td>${row.orders}</td><td><span class="position">${row.position}</span></td></tr>`;
+  }).join('');
+}
+
+function renderGroups() {
+  const result = resultRows();
+  document.getElementById('group-grid').innerHTML = categories.map((category) => {
+    const count = result.filter((row) => row.category === category).length;
+    return `<div class="group-card"><div><div class="group-name">${category}</div><div class="group-detail">условие position ≤ ${topN}</div></div><div class="group-count">${count}</div></div>`;
+  }).join('');
+}
+
+function renderSummary() {
+  const result = resultRows();
+  const overLimit = categories.filter((category) => result.filter((row) => row.category === category).length > topN);
+  if (overLimit.length) {
+    document.getElementById('summary').innerHTML = `<b>Результат шире Top-${topN}.</b><br>В ${overLimit.join(', ')} граница попала на одинаковые значения, поэтому RANK сохранил все строки с этой позицией.`;
+  } else {
+    document.getElementById('summary').innerHTML = `<b>Не больше ${topN} строк на категорию.</b><br>${functionName === 'row_number' ? 'ROW_NUMBER присвоил каждой строке отдельный номер.' : 'На границе Top-N сейчас нет ничьей.'}`;
+  }
+}
+
+function renderResult() {
+  const result = resultRows();
+  document.getElementById('result-meta').textContent = `${result.length} строк`;
+  document.getElementById('result').innerHTML = `<table><thead><tr><th>category</th><th>item</th><th>revenue</th><th>orders</th><th>position</th></tr></thead><tbody>${result.map((row) => `<tr><td><span class="category ${row.category.toLowerCase()}">${row.category}</span></td><td>${row.item}</td><td>${row.revenue}</td><td>${row.orders}</td><td class="result-position">${row.position}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function render() {
+  document.querySelectorAll('[data-function]').forEach((button) => button.classList.toggle('active', button.dataset.function === functionName));
+  document.getElementById('n-value').textContent = topN;
+  renderSql();
+  renderRanked();
+  renderGroups();
+  renderSummary();
+  renderResult();
+}
+
+document.getElementById('function-toggle').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-function]');
+  if (!button) return;
+  functionName = button.dataset.function;
+  render();
+});
+
+document.getElementById('n-range').addEventListener('input', (event) => {
+  topN = Number(event.target.value);
+  render();
+});
+
+document.getElementById('metric-select').addEventListener('change', (event) => {
+  metric = event.target.value;
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

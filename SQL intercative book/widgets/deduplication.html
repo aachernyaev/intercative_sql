@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Удаление дублей</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; padding: 28px 18px; background: #f5f5f3; color: #2c2c2a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .card { width: 100%; max-width: 1060px; margin: 0 auto; padding: 26px; border: 1px solid #e5e4de; border-radius: 16px; background: #fff; }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .controls { display: grid; grid-template-columns: .9fr 1.1fr .9fr; gap: 10px; margin-bottom: 14px; }
+  .control { padding: 12px; border: 1px solid #e5e4de; border-radius: 9px; background: #fafaf8; }
+  .control.disabled { opacity: .38; }
+  .control-title { margin-bottom: 8px; color: #85837c; font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .toggle { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; padding: 3px; border-radius: 8px; background: #ecebe6; }
+  .toggle button { padding: 7px 8px; border: 0; border-radius: 6px; background: transparent; color: #77756f; font: 700 10px "Courier New", monospace; cursor: pointer; }
+  .toggle button.active { background: #fff; color: #0c447c; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  select { width: 100%; padding: 8px 9px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fff; color: #373734; font: 10.5px "Courier New", monospace; }
+  .sql { margin-bottom: 16px; padding: 15px 17px; overflow-x: auto; border-radius: 11px; background: #1e1e2e; color: #cdd6f4; font: 12px/1.65 "Courier New", monospace; white-space: pre; }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .key-sql { padding: 2px 4px; border-radius: 4px; background: rgba(249,226,175,.1); color: #f9e2af; }
+  .section-title { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .section-meta { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .layout { display: grid; grid-template-columns: 1.35fr .65fr; gap: 14px; margin-bottom: 16px; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 9px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .source-row { cursor: pointer; }
+  .source-row:hover td { background: #f3f8fd; }
+  .source-row.kept td { background: #f5faef; color: #3b6d11; }
+  .source-row.removed td { opacity: .34; }
+  .source-row.group-selected td { box-shadow: inset 0 1px #c9a8e8, inset 0 -1px #c9a8e8; }
+  .source-row.group-selected td:first-child { box-shadow: inset 2px 0 #8b2fc9, inset 0 1px #c9a8e8, inset 0 -1px #c9a8e8; }
+  .rank { display: inline-grid; place-items: center; min-width: 22px; height: 22px; border-radius: 7px; background: #f0eaf8; color: #5b2d8e; font: 800 10px "Courier New", monospace; }
+  .dash { color: #aaa89f; }
+  .side { display: flex; flex-direction: column; gap: 10px; }
+  .group-card { padding: 14px; border: 1px solid #d6bee9; border-radius: 10px; background: #f7f2fb; }
+  .group-title { margin-bottom: 7px; color: #5b2d8e; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .05em; }
+  .group-key { overflow-wrap: anywhere; font: 700 11px/1.5 "Courier New", monospace; }
+  .group-count { margin-top: 9px; font-size: 20px; font-weight: 850; }
+  .group-text { margin-top: 7px; color: #686762; font-size: 11.5px; line-height: 1.5; }
+  .summary { padding: 13px; border-left: 3px solid #85b7eb; border-radius: 7px; background: #f3f8fd; color: #315c84; font-size: 11.5px; line-height: 1.55; }
+  .result-row.selected td { background: #f7f2fb; }
+  .status { display: inline-flex; padding: 3px 6px; border-radius: 9px; font: 700 8px "Courier New", monospace; }
+  .status.kept { background: #e7f3d8; color: #3b6d11; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 820px) { body { padding: 12px; } .card { padding: 18px; } .controls, .layout { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Удаление дублей</h1>
+  <p class="intro"><code>DISTINCT</code> удаляет одинаковые комбинации выбранных столбцов. Если нужно определить дубли по ключу и сохранить конкретную полную строку, удобно пронумеровать их через <code>ROW_NUMBER()</code>.</p>
+
+  <section class="controls">
+    <div class="control">
+      <div class="control-title">Способ</div>
+      <div id="method-toggle" class="toggle">
+        <button type="button" data-method="distinct">DISTINCT</button>
+        <button class="active" type="button" data-method="row-number">ROW_NUMBER</button>
+      </div>
+    </div>
+    <label id="key-control" class="control">
+      <div class="control-title">Ключ дубля</div>
+      <select id="key-select">
+        <option value="event-id">event_id</option>
+        <option value="natural">user_id + event_name + event_time</option>
+      </select>
+    </label>
+    <div id="keep-control" class="control">
+      <div class="control-title">Какую загрузку оставить</div>
+      <div id="keep-toggle" class="toggle">
+        <button type="button" data-keep="earliest">раннюю</button>
+        <button class="active" type="button" data-keep="latest">позднюю</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="sql" class="sql"></div>
+
+  <section class="layout">
+    <div>
+      <div class="section-title"><span>raw_events</span><span class="section-meta">нажми на строку</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>ingest_id</th><th>event_id</th><th>user_id</th><th>event_name</th><th>event_time</th><th>loaded_at</th><th>source</th><th>rn</th></tr></thead>
+        <tbody id="source-body"></tbody>
+      </table></div>
+    </div>
+    <aside class="side">
+      <section id="group-card" class="group-card"></section>
+      <section id="summary" class="summary"></section>
+    </aside>
+  </section>
+
+  <div class="section-title"><span>Результат</span><span id="result-meta" class="section-meta"></span></div>
+  <div id="result" class="table-wrap"></div>
+
+  <p class="note"><b>Ключ — это бизнес-решение.</b> Слишком узкий ключ не удалит часть дублей, а слишком широкий может склеить разные реальные события. SQL только применяет выбранное правило.</p>
+</main>
+
+<script>
+const rows = [
+  { ingest_id: 1, event_id: 'e-101', user_id: 101, event_name: 'contact', event_time: '08-05 10:00', loaded_at: '10:01', source: 'app' },
+  { ingest_id: 2, event_id: 'e-101', user_id: 101, event_name: 'contact', event_time: '08-05 10:00', loaded_at: '10:04', source: 'retry' },
+  { ingest_id: 3, event_id: 'e-102', user_id: 101, event_name: 'purchase', event_time: '08-05 10:20', loaded_at: '10:21', source: 'app' },
+  { ingest_id: 4, event_id: 'e-200', user_id: 102, event_name: 'search', event_time: '08-06 09:00', loaded_at: '09:01', source: 'app' },
+  { ingest_id: 5, event_id: 'e-200', user_id: 102, event_name: 'search', event_time: '08-06 09:00', loaded_at: '09:03', source: 'retry' },
+  { ingest_id: 6, event_id: 'e-201', user_id: 102, event_name: 'contact', event_time: '08-06 09:15', loaded_at: '09:16', source: 'app' },
+  { ingest_id: 7, event_id: 'e-300', user_id: 103, event_name: 'contact', event_time: '08-07 12:00', loaded_at: '12:01', source: 'app' },
+  { ingest_id: 8, event_id: 'e-301', user_id: 103, event_name: 'contact', event_time: '08-07 12:00', loaded_at: '12:02', source: 'web' },
+];
+
+let method = 'row-number';
+let keyMode = 'event-id';
+let keep = 'latest';
+let selectedIngestId = 1;
+
+function keyColumns() {
+  return keyMode === 'event-id' ? ['event_id'] : ['user_id', 'event_name', 'event_time'];
+}
+
+function keyFor(row, distinctMode = false) {
+  const columns = distinctMode ? ['user_id', 'event_name', 'event_time'] : keyColumns();
+  return columns.map((column) => row[column]).join(' · ');
+}
+
+function groups(distinctMode = false) {
+  const map = new Map();
+  rows.forEach((row) => {
+    const key = keyFor(row, distinctMode);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(row);
+  });
+  return map;
+}
+
+function rankedRows() {
+  const rankById = new Map();
+  groups().forEach((groupRows) => {
+    const sorted = [...groupRows].sort((a, b) => {
+      const timeOrder = a.loaded_at.localeCompare(b.loaded_at) || a.ingest_id - b.ingest_id;
+      return keep === 'earliest' ? timeOrder : -timeOrder;
+    });
+    sorted.forEach((row, index) => rankById.set(row.ingest_id, index + 1));
+  });
+  return rows.map((row) => ({ ...row, rn: rankById.get(row.ingest_id) }));
+}
+
+function resultRows() {
+  if (method === 'distinct') {
+    return [...groups(true).values()].map((groupRows) => {
+      const row = groupRows[0];
+      return { user_id: row.user_id, event_name: row.event_name, event_time: row.event_time };
+    });
+  }
+  return rankedRows().filter((row) => row.rn === 1);
+}
+
+function renderSql() {
+  if (method === 'distinct') {
+    document.getElementById('sql').innerHTML = `<span class="kw">SELECT DISTINCT</span>\n    user_id,\n    event_name,\n    event_time\n<span class="kw">FROM</span> raw_events\n<span class="kw">ORDER BY</span> user_id, event_time`;
+    return;
+  }
+  const direction = keep === 'earliest' ? 'ASC' : 'DESC';
+  const key = keyColumns().join(', ');
+  document.getElementById('sql').innerHTML = `<span class="kw">WITH</span> ranked <span class="kw">AS</span> (\n  <span class="kw">SELECT</span>\n      *,\n      <span class="fn">ROW_NUMBER()</span> <span class="kw">OVER</span> (\n          <span class="kw">PARTITION BY</span> <span class="key-sql">${key}</span>\n          <span class="kw">ORDER BY</span> loaded_at ${direction}, ingest_id ${direction}\n      ) <span class="kw">AS</span> rn\n  <span class="kw">FROM</span> raw_events\n)\n<span class="kw">SELECT</span> ingest_id, event_id, user_id,\n       event_name, event_time, loaded_at, source\n<span class="kw">FROM</span> ranked\n<span class="kw">WHERE</span> rn = 1\n<span class="kw">ORDER BY</span> ingest_id`;
+}
+
+function renderSource() {
+  const ranked = rankedRows();
+  const selected = rows.find((row) => row.ingest_id === selectedIngestId);
+  const selectedKey = keyFor(selected, method === 'distinct');
+  document.getElementById('source-body').innerHTML = ranked.map((row) => {
+    const sameGroup = keyFor(row, method === 'distinct') === selectedKey;
+    let state = '';
+    if (method === 'row-number') state = row.rn === 1 ? 'kept' : 'removed';
+    const classes = ['source-row', state, sameGroup ? 'group-selected' : ''].filter(Boolean).join(' ');
+    return `<tr class="${classes}" data-ingest-id="${row.ingest_id}"><td>${row.ingest_id}</td><td>${row.event_id}</td><td>${row.user_id}</td><td>${row.event_name}</td><td>${row.event_time}</td><td>${row.loaded_at}</td><td>${row.source}</td><td>${method === 'row-number' ? `<span class="rank">${row.rn}</span>` : '<span class="dash">—</span>'}</td></tr>`;
+  }).join('');
+}
+
+function renderGroupCard() {
+  const selected = rows.find((row) => row.ingest_id === selectedIngestId);
+  const distinctMode = method === 'distinct';
+  const key = keyFor(selected, distinctMode);
+  const group = groups(distinctMode).get(key);
+  const columns = distinctMode ? 'user_id + event_name + event_time' : keyColumns().join(' + ');
+  document.getElementById('group-card').innerHTML = `
+    <div class="group-title">Выбранная группа</div>
+    <div class="group-key">${columns}<br>${key}</div>
+    <div class="group-count">${group.length} ${group.length === 1 ? 'строка' : 'строки'}</div>
+    <div class="group-text">${group.length > 1 ? 'По текущему правилу это одна группа дублей.' : 'По текущему правилу дублей у строки нет.'}</div>`;
+}
+
+function renderSummary() {
+  const result = resultRows();
+  const removed = rows.length - result.length;
+  document.getElementById('summary').innerHTML = method === 'distinct'
+    ? `<b>DISTINCT сравнивает только три выбранных столбца.</b><br>Было ${rows.length} строк, стало ${result.length}; исчезло повторов: ${removed}. Остальные столбцы в результат не попали.`
+    : `<b>ROW_NUMBER сохраняет полную строку с rn = 1.</b><br>Было ${rows.length} строк, стало ${result.length}; отброшено: ${removed}.`;
+}
+
+function renderResult() {
+  const result = resultRows();
+  document.getElementById('result-meta').textContent = `${result.length} из ${rows.length} строк`;
+  if (method === 'distinct') {
+    document.getElementById('result').innerHTML = `<table><thead><tr><th>user_id</th><th>event_name</th><th>event_time</th></tr></thead><tbody>${result.map((row) => `<tr><td>${row.user_id}</td><td>${row.event_name}</td><td>${row.event_time}</td></tr>`).join('')}</tbody></table>`;
+  } else {
+    document.getElementById('result').innerHTML = `<table><thead><tr><th>ingest_id</th><th>event_id</th><th>user_id</th><th>event_name</th><th>event_time</th><th>loaded_at</th><th>source</th><th>статус</th></tr></thead><tbody>${result.map((row) => `<tr><td>${row.ingest_id}</td><td>${row.event_id}</td><td>${row.user_id}</td><td>${row.event_name}</td><td>${row.event_time}</td><td>${row.loaded_at}</td><td>${row.source}</td><td><span class="status kept">оставлена</span></td></tr>`).join('')}</tbody></table>`;
+  }
+}
+
+function render() {
+  document.querySelectorAll('[data-method]').forEach((button) => button.classList.toggle('active', button.dataset.method === method));
+  document.querySelectorAll('[data-keep]').forEach((button) => button.classList.toggle('active', button.dataset.keep === keep));
+  const disabled = method === 'distinct';
+  document.getElementById('key-select').disabled = disabled;
+  document.querySelectorAll('[data-keep]').forEach((button) => button.disabled = disabled);
+  document.getElementById('key-control').classList.toggle('disabled', disabled);
+  document.getElementById('keep-control').classList.toggle('disabled', disabled);
+  renderSql();
+  renderSource();
+  renderGroupCard();
+  renderSummary();
+  renderResult();
+}
+
+document.getElementById('method-toggle').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-method]');
+  if (!button) return;
+  method = button.dataset.method;
+  render();
+});
+
+document.getElementById('key-select').addEventListener('change', (event) => {
+  keyMode = event.target.value;
+  render();
+});
+
+document.getElementById('keep-toggle').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-keep]');
+  if (!button || button.disabled) return;
+  keep = button.dataset.keep;
+  render();
+});
+
+document.getElementById('source-body').addEventListener('click', (event) => {
+  const row = event.target.closest('[data-ingest-id]');
+  if (!row) return;
+  selectedIngestId = Number(row.dataset.ingestId);
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

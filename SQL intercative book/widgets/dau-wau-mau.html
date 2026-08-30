@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DAU, WAU и MAU</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; padding: 28px 18px; background: #f5f5f3; color: #2c2c2a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .card { width: 100%; max-width: 1040px; margin: 0 auto; padding: 26px; border: 1px solid #e5e4de; border-radius: 16px; background: #fff; }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .control { padding: 12px; border: 1px solid #e5e4de; border-radius: 9px; background: #fafaf8; }
+  .control-title { margin-bottom: 8px; color: #85837c; font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .toggle { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; padding: 3px; border-radius: 8px; background: #ecebe6; }
+  .toggle button { padding: 7px 8px; border: 0; border-radius: 6px; background: transparent; color: #77756f; font: 700 10px "Courier New", monospace; cursor: pointer; }
+  .toggle button.active { background: #fff; color: #0c447c; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  .range-row { display: flex; align-items: center; gap: 10px; }
+  input[type="range"] { width: 100%; accent-color: #185fa5; }
+  .range-value { min-width: 88px; color: #0c447c; font: 800 11px "Courier New", monospace; text-align: right; }
+  .sql { margin-bottom: 14px; padding: 15px 17px; overflow-x: auto; border-radius: 11px; background: #1e1e2e; color: #cdd6f4; font: 11.5px/1.65 "Courier New", monospace; white-space: pre; }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .date { color: #a6e3a1; }
+  .number { color: #fab387; }
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 16px; }
+  .metric { padding: 13px; border: 1px solid #e5e4de; border-radius: 11px; background: #fafaf8; text-align: left; cursor: pointer; }
+  .metric:hover { border-color: #b8d4ee; }
+  .metric.active { border-color: #85b7eb; background: #f0f6fc; box-shadow: inset 0 0 0 1px #85b7eb; }
+  .metric-name { color: #77756f; font: 800 11px "Courier New", monospace; }
+  .metric-value { margin: 4px 0 5px; color: #185fa5; font-size: 28px; font-weight: 850; }
+  .metric-range { color: #85837c; font-size: 9.5px; }
+  .section-title { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .section-meta { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .layout { display: grid; grid-template-columns: 1.15fr .85fr; gap: 14px; }
+  .table-wrap { max-height: 355px; overflow: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th, td { padding: 8px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { position: sticky; top: 0; z-index: 1; background: #fafaf8; color: #77756f; font: 9.5px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .event-row.in-range td { background: #f5faef; color: #3b6d11; }
+  .event-row.outside td { opacity: .25; }
+  .event-row.ignored td { opacity: .22; text-decoration: line-through; }
+  .side { display: flex; flex-direction: column; gap: 10px; }
+  .users-card { padding: 14px; border: 1px solid #e5e4de; border-radius: 10px; background: #fafaf8; }
+  .users-title { margin-bottom: 9px; font-size: 14px; font-weight: 800; }
+  .users { display: flex; flex-wrap: wrap; gap: 6px; }
+  .user { padding: 5px 8px; border: 1px solid #b5d88a; border-radius: 9px; background: #f1f8e9; color: #3b6d11; font: 700 9px "Courier New", monospace; }
+  .empty { color: #999790; font-size: 11px; }
+  .formula { padding: 13px; border-left: 3px solid #85b7eb; border-radius: 7px; background: #f3f8fd; color: #315c84; font-size: 11.5px; line-height: 1.55; }
+  .funnel { padding: 13px; border: 1px solid #e5e4de; border-radius: 10px; }
+  .funnel-title { margin-bottom: 9px; color: #77756f; font-size: 10px; font-weight: 700; }
+  .bar-row { display: grid; grid-template-columns: 34px 1fr 24px; gap: 7px; align-items: center; margin-top: 7px; }
+  .bar-label { color: #77756f; font: 700 9px "Courier New", monospace; }
+  .bar-track { height: 7px; overflow: hidden; border-radius: 6px; background: #ecebe6; }
+  .bar { height: 100%; border-radius: 6px; background: #85b7eb; }
+  .bar-value { color: #315c84; font-size: 10px; font-weight: 800; text-align: right; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 780px) { body { padding: 12px; } .card { padding: 18px; } .controls, .layout { grid-template-columns: 1fr; } }
+  @media (max-width: 520px) { .metrics { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>DAU, WAU и MAU</h1>
+  <p class="intro">Считаем уникальных активных пользователей на выбранную дату: за 1 день, последние 7 дней и последние 30 дней включительно.</p>
+
+  <section class="controls">
+    <label class="control">
+      <div class="control-title">Дата отчёта</div>
+      <div class="range-row"><input id="date-range" type="range" min="0" max="7" value="7"><span id="date-value" class="range-value">2026-08-31</span></div>
+    </label>
+    <div class="control">
+      <div class="control-title">Что считать активностью</div>
+      <div id="activity-toggle" class="toggle">
+        <button class="active" type="button" data-activity="any">любое событие</button>
+        <button type="button" data-activity="target">contact / purchase</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="sql" class="sql"></div>
+  <section id="metrics" class="metrics"></section>
+
+  <section class="layout">
+    <div>
+      <div class="section-title"><span>events</span><span id="events-meta" class="section-meta"></span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>event_date</th><th>user_id</th><th>user</th><th>event_name</th></tr></thead>
+        <tbody id="events-body"></tbody>
+      </table></div>
+    </div>
+    <aside class="side">
+      <section id="users-card" class="users-card"></section>
+      <section id="formula" class="formula"></section>
+      <section id="funnel" class="funnel"></section>
+    </aside>
+  </section>
+
+  <p class="note"><b>Здесь WAU и MAU скользящие.</b> В другой системе метрик они могут означать календарную неделю и месяц. Перед расчётом нужно зафиксировать определение и часовой пояс даты события.</p>
+</main>
+
+<script>
+const events = [
+  { event_date: '2026-07-29', user_id: 110, user: 'Лев', event_name: 'purchase' },
+  { event_date: '2026-08-01', user_id: 105, user: 'Елена', event_name: 'contact' },
+  { event_date: '2026-08-02', user_id: 101, user: 'Анна', event_name: 'signup' },
+  { event_date: '2026-08-05', user_id: 102, user: 'Борис', event_name: 'signup' },
+  { event_date: '2026-08-12', user_id: 103, user: 'Вера', event_name: 'search' },
+  { event_date: '2026-08-15', user_id: 107, user: 'Жанна', event_name: 'purchase' },
+  { event_date: '2026-08-22', user_id: 104, user: 'Глеб', event_name: 'page_view' },
+  { event_date: '2026-08-24', user_id: 109, user: 'Кира', event_name: 'contact' },
+  { event_date: '2026-08-25', user_id: 101, user: 'Анна', event_name: 'search' },
+  { event_date: '2026-08-27', user_id: 106, user: 'Фёдор', event_name: 'favorite' },
+  { event_date: '2026-08-28', user_id: 102, user: 'Борис', event_name: 'purchase' },
+  { event_date: '2026-08-29', user_id: 106, user: 'Фёдор', event_name: 'contact' },
+  { event_date: '2026-08-30', user_id: 103, user: 'Вера', event_name: 'contact' },
+  { event_date: '2026-08-31', user_id: 101, user: 'Анна', event_name: 'contact' },
+  { event_date: '2026-08-31', user_id: 101, user: 'Анна', event_name: 'page_view' },
+  { event_date: '2026-08-31', user_id: 104, user: 'Глеб', event_name: 'purchase' },
+  { event_date: '2026-08-31', user_id: 108, user: 'Игорь', event_name: 'page_view' },
+  { event_date: '2026-08-31', user_id: 108, user: 'Игорь', event_name: 'search' },
+];
+
+const reportDates = ['2026-08-24', '2026-08-25', '2026-08-26', '2026-08-27', '2026-08-28', '2026-08-29', '2026-08-30', '2026-08-31'];
+const metricDays = { dau: 0, wau: 6, mau: 29 };
+let reportDate = reportDates[7];
+let activity = 'any';
+let focusedMetric = 'wau';
+
+function addDays(date, amount) {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + amount);
+  return value.toISOString().slice(0, 10);
+}
+
+function isActivity(event) {
+  return activity === 'any' || ['contact', 'purchase'].includes(event.event_name);
+}
+
+function period(metric) {
+  const start = addDays(reportDate, -metricDays[metric]);
+  const periodEvents = events.filter((event) => isActivity(event) && event.event_date >= start && event.event_date <= reportDate);
+  const usersMap = new Map(periodEvents.map((event) => [event.user_id, { user_id: event.user_id, user: event.user }]));
+  return { start, end: reportDate, events: periodEvents, users: [...usersMap.values()] };
+}
+
+function renderSql() {
+  const activityWhere = activity === 'target' ? `\n<span class="kw">WHERE</span> event_name <span class="kw">IN</span> (<span class="date">'contact'</span>, <span class="date">'purchase'</span>)` : '';
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span>\n    <span class="fn">COUNT(DISTINCT user_id)</span> <span class="kw">FILTER</span> (\n        <span class="kw">WHERE</span> event_date = <span class="date">DATE '${reportDate}'</span>\n    ) <span class="kw">AS</span> dau,\n    <span class="fn">COUNT(DISTINCT user_id)</span> <span class="kw">FILTER</span> (\n        <span class="kw">WHERE</span> event_date <span class="kw">BETWEEN</span> <span class="fn">date_add</span>(<span class="date">'day'</span>, <span class="number">-6</span>, <span class="date">DATE '${reportDate}'</span>)\n                             <span class="kw">AND</span> <span class="date">DATE '${reportDate}'</span>\n    ) <span class="kw">AS</span> wau,\n    <span class="fn">COUNT(DISTINCT user_id)</span> <span class="kw">FILTER</span> (\n        <span class="kw">WHERE</span> event_date <span class="kw">BETWEEN</span> <span class="fn">date_add</span>(<span class="date">'day'</span>, <span class="number">-29</span>, <span class="date">DATE '${reportDate}'</span>)\n                             <span class="kw">AND</span> <span class="date">DATE '${reportDate}'</span>\n    ) <span class="kw">AS</span> mau\n<span class="kw">FROM</span> events${activityWhere}`;
+}
+
+function renderMetrics() {
+  document.getElementById('metrics').innerHTML = ['dau', 'wau', 'mau'].map((metric) => {
+    const data = period(metric);
+    return `<button class="metric ${metric === focusedMetric ? 'active' : ''}" type="button" data-metric="${metric}"><div class="metric-name">${metric.toUpperCase()}</div><div class="metric-value">${data.users.length}</div><div class="metric-range">${data.start}${data.start === data.end ? '' : ` → ${data.end}`}</div></button>`;
+  }).join('');
+}
+
+function renderEvents() {
+  const focused = period(focusedMetric);
+  document.getElementById('events-meta').textContent = `подсвечен ${focusedMetric.toUpperCase()}`;
+  document.getElementById('events-body').innerHTML = [...events].sort((a, b) => b.event_date.localeCompare(a.event_date) || a.user_id - b.user_id).map((event) => {
+    const inDateRange = event.event_date >= focused.start && event.event_date <= focused.end;
+    const classes = ['event-row', !isActivity(event) ? 'ignored' : inDateRange ? 'in-range' : 'outside'].join(' ');
+    return `<tr class="${classes}"><td>${event.event_date}</td><td>${event.user_id}</td><td>${event.user}</td><td>${event.event_name}</td></tr>`;
+  }).join('');
+}
+
+function renderUsers() {
+  const focused = period(focusedMetric);
+  document.getElementById('users-card').innerHTML = `<div class="users-title">${focusedMetric.toUpperCase()}: ${focused.users.length} пользователей</div><div class="users">${focused.users.length ? focused.users.map((item) => `<span class="user">${item.user} · ${item.user_id}</span>`).join('') : '<span class="empty">Нет активных пользователей</span>'}</div>`;
+  document.getElementById('formula').innerHTML = `<b>${focused.events.length} событий → ${focused.users.length} пользователей.</b><br>Повторные события одного user_id внутри диапазона считаются один раз благодаря COUNT(DISTINCT user_id).`;
+}
+
+function renderFunnel() {
+  const values = ['dau', 'wau', 'mau'].map((metric) => ({ metric, value: period(metric).users.length }));
+  const maximum = Math.max(...values.map((item) => item.value), 1);
+  document.getElementById('funnel').innerHTML = `<div class="funnel-title">Вложенные скользящие окна</div>${values.map((item) => `<div class="bar-row"><span class="bar-label">${item.metric.toUpperCase()}</span><div class="bar-track"><div class="bar" style="width:${item.value / maximum * 100}%"></div></div><span class="bar-value">${item.value}</span></div>`).join('')}`;
+}
+
+function render() {
+  document.querySelectorAll('[data-activity]').forEach((button) => button.classList.toggle('active', button.dataset.activity === activity));
+  document.getElementById('date-value').textContent = reportDate;
+  renderSql();
+  renderMetrics();
+  renderEvents();
+  renderUsers();
+  renderFunnel();
+}
+
+document.getElementById('date-range').addEventListener('input', (event) => {
+  reportDate = reportDates[Number(event.target.value)];
+  render();
+});
+
+document.getElementById('activity-toggle').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-activity]');
+  if (!button) return;
+  activity = button.dataset.activity;
+  render();
+});
+
+document.getElementById('metrics').addEventListener('click', (event) => {
+  const metric = event.target.closest('[data-metric]');
+  if (!metric) return;
+  focusedMetric = metric.dataset.metric;
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORDER BY и LIMIT</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .pipeline {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .pipe-step {
+    padding: 10px 12px;
+    border: 1px solid #e5e4de;
+    border-radius: 9px;
+    background: #fafaf8;
+    color: #66655f;
+    font-size: 12px;
+    text-align: center;
+  }
+  .pipe-step b { display: block; margin-bottom: 3px; color: #185fa5; font: 700 13px "Courier New", monospace; }
+  .pipe-arrow { color: #aaa89f; }
+  .controls {
+    display: grid;
+    grid-template-columns: .95fr .8fr 1.15fr 1.2fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .control {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+  }
+  .control-title { margin-bottom: 8px; color: #85837c; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  select {
+    width: 100%;
+    padding: 8px 9px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #373734;
+    font: 12px "Courier New", monospace;
+  }
+  .direction-buttons { display: flex; gap: 6px; }
+  .direction-button {
+    flex: 1;
+    padding: 7px 8px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 11px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .direction-button.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .toggle-row { display: flex; min-height: 32px; align-items: center; justify-content: space-between; gap: 8px; color: #5f5e5a; font-size: 11px; }
+  .switch {
+    position: relative;
+    width: 42px;
+    height: 23px;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 999px;
+    background: #d3d1c7;
+    cursor: pointer;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.18);
+    transition: .18s;
+  }
+  .switch.on { background: #185fa5; }
+  .switch.on::after { left: 22px; }
+  .limit-control { display: flex; align-items: center; gap: 8px; }
+  input[type="range"] { width: 100%; accent-color: #185fa5; }
+  .limit-value { min-width: 18px; color: #0c447c; font: 700 13px "Courier New", monospace; text-align: right; }
+  .hint {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .sql {
+    margin-bottom: 18px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 13px/1.75 "Courier New", monospace;
+    white-space: pre;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .column { color: #cba6f7; }
+  .value { color: #a6e3a1; }
+  .tables { display: grid; grid-template-columns: .9fr 1.1fr; gap: 16px; }
+  .table-title { display: flex; justify-content: space-between; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .count { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 8px 9px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 11px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .sort-column { background: #edf5fc !important; color: #0c447c; font-weight: 700; }
+  .position { width: 32px; color: #185fa5; font: 700 11px "Courier New", monospace; text-align: center; }
+  .tie td { box-shadow: inset 0 -1px 0 #ef9f27; }
+  .cutoff td { border-bottom: 2px dashed #d56b6b; }
+  .arrow { color: #185fa5; font-size: 15px; font-weight: 800; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 760px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .controls { grid-template-columns: 1fr 1fr; }
+    .tables { grid-template-columns: 1fr; }
+    .pipeline { grid-template-columns: 1fr; }
+    .pipe-arrow { transform: rotate(90deg); text-align: center; }
+  }
+  @media (max-width: 480px) { .controls { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>ORDER BY и LIMIT</h1>
+  <p class="intro"><code>ORDER BY</code> задаёт порядок строк результата. После сортировки <code>LIMIT</code> оставляет только первые N строк.</p>
+
+  <div class="pipeline">
+    <div class="pipe-step"><b>FROM</b>исходные строки</div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-step"><b>ORDER BY</b>переставляем</div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-step"><b>LIMIT</b>берём первые N</div>
+  </div>
+
+  <div class="controls">
+    <section class="control">
+      <div class="control-title">Столбец сортировки</div>
+      <select id="sort-field">
+        <option value="price">price</option>
+        <option value="views">views</option>
+        <option value="published_date">published_date</option>
+      </select>
+    </section>
+    <section class="control">
+      <div class="control-title">Направление</div>
+      <div class="direction-buttons">
+        <button class="direction-button active" type="button" data-direction="ASC">ASC ↑</button>
+        <button class="direction-button" type="button" data-direction="DESC">DESC ↓</button>
+      </div>
+    </section>
+    <section class="control">
+      <div class="control-title">Одинаковые значения</div>
+      <div class="toggle-row"><span>Задать второй ключ<br><code>item_id ASC</code></span><button id="tie-toggle" class="switch" type="button" aria-label="Добавить второй ключ сортировки"></button></div>
+    </section>
+    <section class="control">
+      <div class="control-title">LIMIT</div>
+      <div class="limit-control"><input id="limit" type="range" min="1" max="8" value="5"><span id="limit-value" class="limit-value">5</span></div>
+    </section>
+  </div>
+
+  <div id="hint" class="hint"></div>
+  <div id="sql" class="sql"></div>
+
+  <div class="tables">
+    <section>
+      <div class="table-title"><span>Исходный порядок</span><span class="count">8 строк</span></div>
+      <div class="table-wrap"><table><thead id="source-head"></thead><tbody id="source-body"></tbody></table></div>
+    </section>
+    <section>
+      <div class="table-title"><span>Результат</span><span id="result-count" class="count"></span></div>
+      <div class="table-wrap"><table><thead id="result-head"></thead><tbody id="result-body"></tbody></table></div>
+    </section>
+  </div>
+
+  <p class="note"><b>Важно:</b> без <code>ORDER BY</code> порядок строк результата не гарантирован. Если значения ключа одинаковые, добавь второй ключ для однозначного порядка.</p>
+</main>
+
+<script>
+const rows = [
+  { item_id: 108, price: 8500, views: 91, published_date: '2026-08-05' },
+  { item_id: 103, price: 24000, views: 318, published_date: '2026-08-16' },
+  { item_id: 106, price: 12500, views: 156, published_date: '2026-08-08' },
+  { item_id: 101, price: 3200, views: 74, published_date: '2026-08-02' },
+  { item_id: 105, price: 17900, views: 203, published_date: '2026-08-12' },
+  { item_id: 102, price: 8500, views: 156, published_date: '2026-08-05' },
+  { item_id: 107, price: 31000, views: 412, published_date: '2026-08-21' },
+  { item_id: 104, price: 24000, views: 203, published_date: '2026-08-16' },
+];
+
+const columns = ['item_id', 'price', 'views', 'published_date'];
+let sortField = 'price';
+let direction = 'ASC';
+let useTieBreaker = false;
+let limit = 5;
+
+const format = (value) => typeof value === 'number' ? value.toLocaleString('ru-RU') : value;
+
+function compare(a, b) {
+  let result = a[sortField] < b[sortField] ? -1 : a[sortField] > b[sortField] ? 1 : 0;
+  if (direction === 'DESC') result *= -1;
+  if (result === 0 && useTieBreaker) result = a.item_id - b.item_id;
+  return result;
+}
+
+function sortedRows() {
+  return rows.map((row, sourceIndex) => ({ ...row, sourceIndex })).sort(compare);
+}
+
+function hasTie(row, index, sorted) {
+  const previous = sorted[index - 1];
+  const next = sorted[index + 1];
+  return (previous && previous[sortField] === row[sortField]) || (next && next[sortField] === row[sortField]);
+}
+
+function renderSql() {
+  const secondKey = useTieBreaker ? ', <span class="column">item_id</span> <span class="kw">ASC</span>' : '';
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> item_id, price, views, published_date\n<span class="kw">FROM</span>   listings\n<span class="kw">ORDER BY</span> <span class="column">${sortField}</span> <span class="kw">${direction}</span>${secondKey}\n<span class="kw">LIMIT</span>  <span class="value">${limit}</span>`;
+}
+
+function renderSource() {
+  document.getElementById('source-head').innerHTML = `<tr>${columns.map((column) => `<th class="${column === sortField ? 'sort-column' : ''}">${column}</th>`).join('')}</tr>`;
+  document.getElementById('source-body').innerHTML = rows.map((row) => `<tr>${columns.map((column) => `<td class="${column === sortField ? 'sort-column' : ''}">${format(row[column])}</td>`).join('')}</tr>`).join('');
+}
+
+function renderResult() {
+  const sorted = sortedRows();
+  const result = sorted.slice(0, limit);
+  document.getElementById('result-count').textContent = `${result.length} из ${rows.length} строк`;
+  document.getElementById('result-head').innerHTML = `<tr><th>#</th>${columns.map((column) => `<th class="${column === sortField ? 'sort-column' : ''}">${column}${column === sortField ? ` ${direction === 'ASC' ? '↑' : '↓'}` : ''}</th>`).join('')}</tr>`;
+  document.getElementById('result-body').innerHTML = result.map((row, index) => {
+    const tie = hasTie(row, index, sorted) && !useTieBreaker ? 'tie' : '';
+    const cutoff = index === result.length - 1 && limit < rows.length ? 'cutoff' : '';
+    return `<tr class="${tie} ${cutoff}"><td class="position">${index + 1}</td>${columns.map((column) => `<td class="${column === sortField ? 'sort-column' : ''}">${format(row[column])}${column === sortField ? ' <span class="arrow">' + (direction === 'ASC' ? '↑' : '↓') + '</span>' : ''}</td>`).join('')}</tr>`;
+  }).join('');
+}
+
+function renderHint() {
+  const directionText = direction === 'ASC' ? 'от меньшего к большему' : 'от большего к меньшему';
+  const tieText = useTieBreaker
+    ? ' Для одинаковых значений SQL дополнительно сортирует по <b>item_id ASC</b>.'
+    : ' Одинаковые значения отмечены линией: их взаимный порядок сейчас не задан.';
+  document.getElementById('hint').innerHTML = `<b>${sortField} ${direction}</b> располагает значения ${directionText}. Затем <b>LIMIT ${limit}</b> оставляет верхнюю часть уже отсортированного результата.${tieText}`;
+}
+
+function syncControls() {
+  document.querySelectorAll('[data-direction]').forEach((button) => button.classList.toggle('active', button.dataset.direction === direction));
+  const tieToggle = document.getElementById('tie-toggle');
+  tieToggle.classList.toggle('on', useTieBreaker);
+  tieToggle.setAttribute('aria-pressed', String(useTieBreaker));
+  document.getElementById('limit-value').textContent = limit;
+}
+
+function render() {
+  syncControls();
+  renderSql();
+  renderSource();
+  renderResult();
+  renderHint();
+}
+
+document.getElementById('sort-field').addEventListener('change', (event) => { sortField = event.target.value; render(); });
+document.querySelector('.direction-buttons').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-direction]');
+  if (!button) return;
+  direction = button.dataset.direction;
+  render();
+});
+document.getElementById('tie-toggle').addEventListener('click', () => { useTieBreaker = !useTieBreaker; render(); });
+document.getElementById('limit').addEventListener('input', (event) => { limit = Number(event.target.value); render(); });
+
+render();
+</script>
+</body>
+</html>

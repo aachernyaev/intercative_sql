@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Подзапросы</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+  .tab {
+    padding: 9px 7px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 11px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .tab:hover { border-color: #85b7eb; }
+  .tab.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .hint {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .controls { margin-bottom: 14px; padding: 12px; border: 1px solid #e5e4de; border-radius: 9px; background: #fafaf8; }
+  .control-title { margin-bottom: 8px; color: #85837c; font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .control-row { display: flex; align-items: center; gap: 10px; }
+  select {
+    min-width: 180px;
+    padding: 8px 9px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #373734;
+    font: 12px "Courier New", monospace;
+  }
+  input[type="range"] { width: 260px; max-width: 100%; accent-color: #185fa5; }
+  .range-value { min-width: 24px; color: #0c447c; font: 700 13px "Courier New", monospace; }
+  .sql {
+    margin-bottom: 16px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 12px/1.7 "Courier New", monospace;
+    white-space: pre;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .column { color: #f9e2af; }
+  .value { color: #a6e3a1; }
+  .number { color: #fab387; }
+  .subquery-line { background: rgba(203,166,247,.1); }
+  .sources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .sources.single { grid-template-columns: 1fr; }
+  .section-title { display: flex; justify-content: space-between; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .section-meta { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 10px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .source-row.kept td { background: #f5faef; color: #3b6d11; }
+  .source-row.removed td { opacity: .27; }
+  .selected-segment td { background: #f0eaf8; color: #5b2d8e; font-weight: 700; }
+  .pipeline { display: grid; grid-template-columns: .85fr auto 1.15fr; gap: 12px; align-items: center; }
+  .query-result { min-width: 0; padding: 12px; border: 1px solid #e5e4de; border-radius: 10px; background: #fafaf8; }
+  .query-result.outer { border-color: #b5d88a; background: #f5faef; }
+  .query-label { margin-bottom: 8px; color: #77756f; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+  .query-result.outer .query-label { color: #3b6d11; }
+  .pipeline-arrow { color: #185fa5; font-size: 22px; text-align: center; }
+  .pipeline-arrow span { display: block; margin-top: 3px; color: #999790; font: 9px "Courier New", monospace; white-space: nowrap; }
+  .scalar-result { padding: 24px 10px; color: #5b2d8e; font: 800 24px "Courier New", monospace; text-align: center; }
+  .set-values { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px; }
+  .set-value { padding: 5px 8px; border: 1px solid #c9a8e8; border-radius: 7px; background: #f0eaf8; color: #5b2d8e; font: 700 10px "Courier New", monospace; }
+  .empty { padding: 28px 10px; color: #999790; font-size: 11px; text-align: center; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 760px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .pipeline, .sources, .sources.single { grid-template-columns: 1fr; }
+    .pipeline-arrow { transform: rotate(90deg); }
+    .pipeline-arrow span { display: none; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Подзапросы</h1>
+  <p class="intro">Подзапрос — это запрос внутри другого запроса. Его результат может быть одним значением, набором значений или целой таблицей.</p>
+
+  <div id="tabs" class="tabs">
+    <button class="tab active" type="button" data-mode="scalar">Одно значение</button>
+    <button class="tab" type="button" data-mode="in">Набор для IN</button>
+    <button class="tab" type="button" data-mode="from">Таблица в FROM</button>
+  </div>
+
+  <div id="hint" class="hint"></div>
+  <section id="controls" class="controls"></section>
+  <div id="sql" class="sql"></div>
+
+  <div id="sources" class="sources single"></div>
+
+  <div class="pipeline">
+    <section class="query-result">
+      <div class="query-label">Шаг 1 · результат подзапроса</div>
+      <div id="inner-result"></div>
+    </section>
+    <div class="pipeline-arrow">→<span>используется снаружи</span></div>
+    <section class="query-result outer">
+      <div class="query-label">Шаг 2 · результат внешнего запроса</div>
+      <div id="outer-result"></div>
+    </section>
+  </div>
+
+  <p class="note"><b>Это логическая модель:</b> она помогает читать запрос изнутри наружу. Оптимизатор Trino может преобразовать физический план, не меняя итог. Скалярный подзапрос должен вернуть не больше одной строки.</p>
+</main>
+
+<script>
+const listings = [
+  { item_id: 101, city: 'Москва', price: 120 },
+  { item_id: 102, city: 'Москва', price: 300 },
+  { item_id: 103, city: 'Казань', price: 200 },
+  { item_id: 104, city: 'Казань', price: 400 },
+  { item_id: 105, city: 'Самара', price: 150 },
+  { item_id: 106, city: 'Пермь', price: 500 },
+  { item_id: 107, city: 'Санкт-Петербург', price: 250 },
+];
+
+const citySegments = [
+  { city: 'Москва', segment: 'core' },
+  { city: 'Санкт-Петербург', segment: 'core' },
+  { city: 'Казань', segment: 'regional' },
+  { city: 'Самара', segment: 'regional' },
+  { city: 'Пермь', segment: 'regional' },
+];
+
+let mode = 'scalar';
+let aggregate = 'avg';
+let segment = 'core';
+let minCount = 2;
+
+const format = (value) => typeof value === 'number' ? value.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : value;
+
+function scalarValue() {
+  const prices = listings.map((row) => row.price);
+  if (aggregate === 'min') return Math.min(...prices);
+  if (aggregate === 'max') return Math.max(...prices);
+  return prices.reduce((sum, value) => sum + value, 0) / prices.length;
+}
+
+function inValues() {
+  return citySegments.filter((row) => row.segment === segment).map((row) => row.city);
+}
+
+function cityStats() {
+  const groups = new Map();
+  listings.forEach((row) => {
+    if (!groups.has(row.city)) groups.set(row.city, []);
+    groups.get(row.city).push(row.price);
+  });
+  return [...groups.entries()].map(([city, prices]) => ({ city, avg_price: prices.reduce((sum, price) => sum + price, 0) / prices.length, listing_count: prices.length }));
+}
+
+function outerRows() {
+  if (mode === 'scalar') return listings.filter((row) => row.price > scalarValue());
+  if (mode === 'in') {
+    const values = new Set(inValues());
+    return listings.filter((row) => values.has(row.city));
+  }
+  return cityStats().filter((row) => row.listing_count >= minCount).sort((a, b) => b.avg_price - a.avg_price);
+}
+
+function renderControls() {
+  const root = document.getElementById('controls');
+  if (mode === 'scalar') {
+    root.innerHTML = '<div class="control-title">Агрегат внутри скалярного подзапроса</div><div class="control-row"><select id="aggregate"><option value="avg">AVG(price)</option><option value="min">MIN(price)</option><option value="max">MAX(price)</option></select></div>';
+    document.getElementById('aggregate').value = aggregate;
+    document.getElementById('aggregate').addEventListener('change', (event) => { aggregate = event.target.value; renderDynamic(); });
+  } else if (mode === 'in') {
+    root.innerHTML = '<div class="control-title">Какой сегмент вернёт внутренний запрос</div><div class="control-row"><select id="segment"><option value="core">core</option><option value="regional">regional</option></select></div>';
+    document.getElementById('segment').value = segment;
+    document.getElementById('segment').addEventListener('change', (event) => { segment = event.target.value; renderDynamic(); });
+  } else {
+    root.innerHTML = `<div class="control-title">Фильтр внешнего запроса · listing_count</div><div class="control-row"><input id="min-count" type="range" min="1" max="3" value="${minCount}"><span id="min-count-value" class="range-value">${minCount}</span></div>`;
+    document.getElementById('min-count').addEventListener('input', (event) => { minCount = Number(event.target.value); renderDynamic(); });
+  }
+}
+
+function renderSql() {
+  if (mode === 'scalar') {
+    document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> item_id, city, price\n<span class="kw">FROM</span> listings\n<span class="kw">WHERE</span> price &gt; (\n  <span class="kw">SELECT</span> <span class="fn">${aggregate}</span>(price)\n  <span class="kw">FROM</span> listings\n)`;
+  } else if (mode === 'in') {
+    document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> item_id, city, price\n<span class="kw">FROM</span> listings\n<span class="kw">WHERE</span> city <span class="kw">IN</span> (\n  <span class="kw">SELECT</span> city\n  <span class="kw">FROM</span> city_segments\n  <span class="kw">WHERE</span> segment = <span class="value">'${segment}'</span>\n)`;
+  } else {
+    document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> city, avg_price, listing_count\n<span class="kw">FROM</span> (\n  <span class="kw">SELECT</span> city,\n         <span class="fn">avg</span>(price) <span class="kw">AS</span> avg_price,\n         <span class="fn">count</span>(*) <span class="kw">AS</span> listing_count\n  <span class="kw">FROM</span> listings\n  <span class="kw">GROUP BY</span> city\n) <span class="kw">AS</span> city_stats\n<span class="kw">WHERE</span> listing_count &gt;= <span class="number">${minCount}</span>\n<span class="kw">ORDER BY</span> avg_price <span class="kw">DESC</span>`;
+  }
+}
+
+function table(columns, rows) {
+  if (!rows.length) return '<div class="empty">Результат пуст</div>';
+  return `<div class="table-wrap"><table><thead><tr>${columns.map((column) => `<th>${column}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${columns.map((column) => `<td>${format(row[column])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+
+function renderSources() {
+  const result = outerRows();
+  const keptItems = new Set(mode === 'from'
+    ? listings.filter((row) => result.some((group) => group.city === row.city)).map((row) => row.item_id)
+    : result.map((row) => row.item_id));
+  const listingsTable = `<section><div class="section-title"><span>listings</span><span class="section-meta">зелёные строки пройдут внешний запрос</span></div><div class="table-wrap"><table><thead><tr><th>item_id</th><th>city</th><th>price</th></tr></thead><tbody>${listings.map((row) => `<tr class="source-row ${keptItems.has(row.item_id) ? 'kept' : 'removed'}"><td>${row.item_id}</td><td>${row.city}</td><td>${row.price}</td></tr>`).join('')}</tbody></table></div></section>`;
+  const segmentTable = `<section><div class="section-title"><span>city_segments</span><span class="section-meta">источник подзапроса</span></div><div class="table-wrap"><table><thead><tr><th>city</th><th>segment</th></tr></thead><tbody>${citySegments.map((row) => `<tr class="${row.segment === segment ? 'selected-segment' : 'source-row removed'}"><td>${row.city}</td><td>${row.segment}</td></tr>`).join('')}</tbody></table></div></section>`;
+  const root = document.getElementById('sources');
+  root.className = `sources ${mode === 'in' ? '' : 'single'}`;
+  root.innerHTML = listingsTable + (mode === 'in' ? segmentTable : '');
+}
+
+function renderPipeline() {
+  const result = outerRows();
+  if (mode === 'scalar') {
+    document.getElementById('inner-result').innerHTML = `<div class="scalar-result">${format(scalarValue())}</div>`;
+    document.getElementById('outer-result').innerHTML = table(['item_id', 'city', 'price'], result);
+  } else if (mode === 'in') {
+    document.getElementById('inner-result').innerHTML = `<div class="set-values">${inValues().map((value) => `<span class="set-value">${value}</span>`).join('')}</div>`;
+    document.getElementById('outer-result').innerHTML = table(['item_id', 'city', 'price'], result);
+  } else {
+    document.getElementById('inner-result').innerHTML = table(['city', 'avg_price', 'listing_count'], cityStats());
+    document.getElementById('outer-result').innerHTML = table(['city', 'avg_price', 'listing_count'], result);
+  }
+}
+
+function renderHint() {
+  if (mode === 'scalar') document.getElementById('hint').innerHTML = `<b>Скалярный подзапрос</b> вычисляет ${aggregate.toUpperCase()}(price) и возвращает одну ячейку. Внешний WHERE сравнивает с ней цену каждой строки.`;
+  else if (mode === 'in') document.getElementById('hint').innerHTML = `<b>Подзапрос для IN</b> возвращает один столбец и несколько строк — список городов сегмента ${segment}.`;
+  else document.getElementById('hint').innerHTML = '<b>Подзапрос в FROM</b> становится табличным источником city_stats. Внешний запрос работает с его столбцами как с обычной таблицей.';
+}
+
+function renderDynamic() {
+  const countValue = document.getElementById('min-count-value');
+  if (countValue) countValue.textContent = minCount;
+  renderHint();
+  renderSql();
+  renderSources();
+  renderPipeline();
+}
+
+function render() {
+  document.querySelectorAll('[data-mode]').forEach((button) => button.classList.toggle('active', button.dataset.mode === mode));
+  renderControls();
+  renderDynamic();
+}
+
+document.getElementById('tabs').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-mode]');
+  if (!button) return;
+  mode = button.dataset.mode;
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

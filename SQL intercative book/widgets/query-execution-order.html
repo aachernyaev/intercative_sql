@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Порядок выполнения SQL-запроса</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .steps {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .step {
+    flex: 1 0 110px;
+    padding: 8px 7px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #77756f;
+    cursor: pointer;
+  }
+  .step-number { display: block; margin-bottom: 2px; color: #aaa89f; font-size: 9px; }
+  .step-name { font: 700 11px "Courier New", monospace; }
+  .step.done { border-color: #b5d88a; background: #f5faef; color: #3b6d11; }
+  .step.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; box-shadow: inset 0 0 0 1px #85b7eb; }
+  .step.active .step-number { color: #185fa5; }
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .control {
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1px solid #e5e4de;
+    border-radius: 9px;
+    background: #fafaf8;
+  }
+  .control-title { margin-bottom: 7px; color: #85837c; font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .range-row { display: flex; align-items: center; gap: 8px; }
+  input[type="range"] { width: 100%; accent-color: #185fa5; }
+  .range-value { min-width: 24px; color: #0c447c; font: 700 12px "Courier New", monospace; text-align: right; }
+  .direction-buttons { display: flex; gap: 6px; }
+  .direction-button {
+    flex: 1;
+    padding: 6px;
+    border: 1px solid #d3d1c7;
+    border-radius: 7px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 10px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .direction-button.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .layout { display: grid; grid-template-columns: .85fr 1.15fr; gap: 16px; align-items: start; }
+  .sql-panel, .result-panel { min-width: 0; }
+  .panel-title { display: flex; justify-content: space-between; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .panel-meta { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .sql {
+    padding: 12px 0;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 12px/1.7 "Courier New", monospace;
+  }
+  .sql-line { display: block; min-height: 21px; padding: 0 15px; border-left: 3px solid transparent; white-space: pre; transition: .18s; }
+  .sql-line.current { border-left-color: #89b4fa; background: rgba(137,180,250,.16); color: #fff; }
+  .sql-line.processed:not(.current) { background: rgba(166,227,161,.05); }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .value { color: #a6e3a1; }
+  .number { color: #fab387; }
+  .stage-card {
+    margin-bottom: 12px;
+    padding: 11px 12px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+  }
+  .stage-title { margin-bottom: 4px; color: #0c447c; font: 700 12px "Courier New", monospace; }
+  .stage-text { color: #315c84; font-size: 12px; line-height: 1.5; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 10px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .kept td { background: #f5faef; color: #3b6d11; }
+  .removed td { opacity: .28; text-decoration-color: #d56b6b; }
+  .removed td:first-child { border-left: 3px solid #d56b6b; padding-left: 5px; }
+  .group-row td { background: #f7f4ff; color: #5b2d8e; }
+  .output-row td { background: #edf5fc; color: #0c447c; }
+  .cutoff td { border-bottom: 2px dashed #d56b6b; }
+  .position { width: 28px; color: #185fa5; font-weight: 800; text-align: center; }
+  .status { display: inline-block; padding: 2px 6px; border-radius: 5px; font-size: 9px; font-weight: 700; }
+  .active-status { background: #eaf3de; color: #3b6d11; }
+  .inactive-status { background: #fcebeb; color: #a33a3a; }
+  .navigation { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; }
+  .nav-button {
+    padding: 8px 13px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #55544f;
+    cursor: pointer;
+  }
+  .nav-button.primary { border-color: #185fa5; background: #185fa5; color: #fff; }
+  .nav-button:disabled { visibility: hidden; }
+  .nav-position { color: #999790; font-size: 11px; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 800px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .layout { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) { .controls { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Порядок выполнения SQL-запроса</h1>
+  <p class="intro">Запрос записан начиная с <code>SELECT</code>, но логически обрабатывается с источника данных. Пройдём один агрегирующий запрос по этапам.</p>
+
+  <div id="steps" class="steps"></div>
+
+  <div class="controls">
+    <section class="control">
+      <div class="control-title">HAVING · минимум строк</div>
+      <div class="range-row"><input id="having" type="range" min="1" max="3" value="2"><span id="having-value" class="range-value">2</span></div>
+    </section>
+    <section class="control">
+      <div class="control-title">ORDER BY avg_price</div>
+      <div class="direction-buttons"><button class="direction-button" type="button" data-direction="ASC">ASC ↑</button><button class="direction-button active" type="button" data-direction="DESC">DESC ↓</button></div>
+    </section>
+    <section class="control">
+      <div class="control-title">LIMIT</div>
+      <div class="range-row"><input id="limit" type="range" min="1" max="4" value="2"><span id="limit-value" class="range-value">2</span></div>
+    </section>
+  </div>
+
+  <div class="layout">
+    <section class="sql-panel">
+      <div class="panel-title"><span>Запись запроса</span><span class="panel-meta">подсвечен текущий этап</span></div>
+      <div id="sql" class="sql"></div>
+    </section>
+    <section class="result-panel">
+      <div class="panel-title"><span id="result-title">Промежуточный результат</span><span id="result-meta" class="panel-meta"></span></div>
+      <div class="stage-card"><div id="stage-title" class="stage-title"></div><div id="stage-text" class="stage-text"></div></div>
+      <div class="table-wrap"><table><thead id="table-head"></thead><tbody id="table-body"></tbody></table></div>
+    </section>
+  </div>
+
+  <div class="navigation">
+    <button id="previous" class="nav-button" type="button">← Назад</button>
+    <span id="position" class="nav-position"></span>
+    <button id="next" class="nav-button primary" type="button">Дальше →</button>
+  </div>
+
+  <p class="note"><b>Это логическая модель.</b> Оптимизатор Trino может физически перестроить план, сохраняя результат. Оконные функции добавятся позже: они вычисляются после <code>HAVING</code> и до <code>ORDER BY</code>.</p>
+</main>
+
+<script>
+const rows = [
+  { item_id: 101, city: 'Москва', price: 120, status: 'active' },
+  { item_id: 102, city: 'Москва', price: 180, status: 'active' },
+  { item_id: 103, city: 'Москва', price: 900, status: 'inactive' },
+  { item_id: 104, city: 'Казань', price: 80, status: 'active' },
+  { item_id: 105, city: 'Казань', price: 220, status: 'active' },
+  { item_id: 106, city: 'Казань', price: 300, status: 'active' },
+  { item_id: 107, city: 'Самара', price: 520, status: 'active' },
+  { item_id: 108, city: 'Пермь', price: 400, status: 'active' },
+  { item_id: 109, city: 'Пермь', price: 600, status: 'active' },
+];
+
+const stages = [
+  { key: 'from', clause: 'FROM', title: '1. FROM — найти источник', text: 'Trino начинает с таблицы listings. На этом этапе доступны все её строки и столбцы.' },
+  { key: 'where', clause: 'WHERE', title: '2. WHERE — отфильтровать строки', text: "Условие status = 'active' проверяется для каждой исходной строки. Неактивные объявления дальше не участвуют." },
+  { key: 'group', clause: 'GROUP BY', title: '3. GROUP BY — собрать группы', text: 'Оставшиеся строки объединяются по city. Теперь единица обработки — не отдельная строка, а группа города.' },
+  { key: 'having', clause: 'HAVING', title: '4. HAVING — отфильтровать группы', text: 'HAVING проверяет уже сформированные группы. Города с недостаточным количеством строк исключаются.' },
+  { key: 'select', clause: 'SELECT', title: '5. SELECT — сформировать столбцы', text: 'Для прошедших групп вычисляется AVG(price), а результат получает алиас avg_price.' },
+  { key: 'order', clause: 'ORDER BY', title: '6. ORDER BY — упорядочить результат', text: 'Строки результата сортируются по avg_price. Здесь уже можно использовать алиас из SELECT.' },
+  { key: 'limit', clause: 'LIMIT', title: '7. LIMIT — оставить первые N', text: 'LIMIT применяется к уже отсортированному результату и оставляет первые строки.' },
+];
+
+let currentStage = 0;
+let havingMin = 2;
+let direction = 'DESC';
+let limit = 2;
+
+const activeRows = () => rows.filter((row) => row.status === 'active');
+
+function groups() {
+  const map = new Map();
+  activeRows().forEach((row) => {
+    if (!map.has(row.city)) map.set(row.city, []);
+    map.get(row.city).push(row);
+  });
+  return [...map.entries()].map(([city, items]) => ({
+    city,
+    items,
+    count: items.length,
+    avgPrice: items.reduce((sum, item) => sum + item.price, 0) / items.length,
+  }));
+}
+
+const afterHaving = () => groups().filter((group) => group.count >= havingMin);
+const selectedRows = () => afterHaving().map((group) => ({ city: group.city, avg_price: group.avgPrice }));
+const orderedRows = () => [...selectedRows()].sort((a, b) => direction === 'ASC' ? a.avg_price - b.avg_price : b.avg_price - a.avg_price);
+
+function renderSteps() {
+  document.getElementById('steps').innerHTML = stages.map((stage, index) => `<button class="step ${index < currentStage ? 'done' : ''} ${index === currentStage ? 'active' : ''}" type="button" data-stage="${index}"><span class="step-number">${index + 1}</span><span class="step-name">${stage.clause}</span></button>`).join('');
+}
+
+function renderSql() {
+  const lines = [
+    { stage: 4, html: '<span class="kw">SELECT</span> city, <span class="fn">avg</span>(price) <span class="kw">AS</span> avg_price' },
+    { stage: 0, html: '<span class="kw">FROM</span> listings' },
+    { stage: 1, html: `<span class="kw">WHERE</span> status = <span class="value">'active'</span>` },
+    { stage: 2, html: '<span class="kw">GROUP BY</span> city' },
+    { stage: 3, html: `<span class="kw">HAVING</span> <span class="fn">count</span>(*) &gt;= <span class="number">${havingMin}</span>` },
+    { stage: 5, html: `<span class="kw">ORDER BY</span> avg_price <span class="kw">${direction}</span>` },
+    { stage: 6, html: `<span class="kw">LIMIT</span> <span class="number">${limit}</span>` },
+  ];
+  document.getElementById('sql').innerHTML = lines.map((line) => `<span class="sql-line ${line.stage === currentStage ? 'current' : ''} ${line.stage < currentStage ? 'processed' : ''}">${line.html}</span>`).join('');
+}
+
+function statusBadge(status) {
+  return `<span class="status ${status === 'active' ? 'active-status' : 'inactive-status'}">${status}</span>`;
+}
+
+function renderRaw(stage) {
+  document.getElementById('table-head').innerHTML = '<tr><th>item_id</th><th>city</th><th>price</th><th>status</th></tr>';
+  document.getElementById('table-body').innerHTML = rows.map((row) => {
+    const removed = stage === 'where' && row.status !== 'active';
+    return `<tr class="${stage === 'where' ? (removed ? 'removed' : 'kept') : ''}"><td>${row.item_id}</td><td>${row.city}</td><td>${row.price}</td><td>${statusBadge(row.status)}</td></tr>`;
+  }).join('');
+  document.getElementById('result-meta').textContent = stage === 'where' ? `${activeRows().length} из ${rows.length} строк проходят` : `${rows.length} исходных строк`;
+}
+
+function renderGroups(stage) {
+  const allGroups = groups();
+  document.getElementById('table-head').innerHTML = '<tr><th>city</th><th>строки внутри группы</th><th>prices</th><th>count(*)</th></tr>';
+  document.getElementById('table-body').innerHTML = allGroups.map((group) => {
+    const removed = stage === 'having' && group.count < havingMin;
+    return `<tr class="${removed ? 'removed' : 'group-row'}"><td>${group.city}</td><td>${group.items.map((item) => item.item_id).join(', ')}</td><td>${group.items.map((item) => item.price).join(', ')}</td><td>${group.count}</td></tr>`;
+  }).join('');
+  const kept = stage === 'having' ? afterHaving().length : allGroups.length;
+  document.getElementById('result-meta').textContent = stage === 'having' ? `${kept} из ${allGroups.length} групп проходят` : `${allGroups.length} группы`;
+}
+
+function renderOutput(stage) {
+  const source = stage === 'select' ? selectedRows() : orderedRows();
+  document.getElementById('table-head').innerHTML = `<tr>${stage === 'select' ? '' : '<th>#</th>'}<th>city</th><th>avg_price</th></tr>`;
+  document.getElementById('table-body').innerHTML = source.map((row, index) => {
+    const removed = stage === 'limit' && index >= limit;
+    const cutoff = stage === 'limit' && index === Math.min(limit, source.length) - 1 && limit < source.length;
+    return `<tr class="${removed ? 'removed' : 'output-row'} ${cutoff ? 'cutoff' : ''}">${stage === 'select' ? '' : `<td class="position">${index + 1}</td>`}<td>${row.city}</td><td>${row.avg_price.toLocaleString('ru-RU')}</td></tr>`;
+  }).join('');
+  const count = stage === 'limit' ? Math.min(limit, source.length) : source.length;
+  document.getElementById('result-meta').textContent = stage === 'limit' ? `${count} из ${source.length} строк остаются` : `${source.length} строки результата`;
+}
+
+function renderTable() {
+  const key = stages[currentStage].key;
+  if (key === 'from' || key === 'where') renderRaw(key);
+  else if (key === 'group' || key === 'having') renderGroups(key);
+  else renderOutput(key);
+}
+
+function render() {
+  const stage = stages[currentStage];
+  renderSteps();
+  renderSql();
+  document.getElementById('stage-title').textContent = stage.title;
+  document.getElementById('stage-text').textContent = stage.text;
+  renderTable();
+  document.getElementById('having-value').textContent = havingMin;
+  document.getElementById('limit-value').textContent = limit;
+  document.querySelectorAll('[data-direction]').forEach((button) => button.classList.toggle('active', button.dataset.direction === direction));
+  document.getElementById('previous').disabled = currentStage === 0;
+  document.getElementById('next').disabled = currentStage === stages.length - 1;
+  document.getElementById('position').textContent = `${currentStage + 1} из ${stages.length}`;
+}
+
+document.getElementById('steps').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-stage]');
+  if (!button) return;
+  currentStage = Number(button.dataset.stage);
+  render();
+});
+document.getElementById('having').addEventListener('input', (event) => { havingMin = Number(event.target.value); render(); });
+document.getElementById('limit').addEventListener('input', (event) => { limit = Number(event.target.value); render(); });
+document.querySelector('.direction-buttons').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-direction]');
+  if (!button) return;
+  direction = button.dataset.direction;
+  render();
+});
+document.getElementById('previous').addEventListener('click', () => { currentStage--; render(); });
+document.getElementById('next').addEventListener('click', () => { currentStage++; render(); });
+
+render();
+</script>
+</body>
+</html>

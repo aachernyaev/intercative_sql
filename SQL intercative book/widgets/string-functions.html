@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Строковые функции</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .input-panel {
+    margin-bottom: 14px;
+    padding: 13px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+  }
+  .label { margin-bottom: 8px; color: #85837c; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  input[type="text"] {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #373734;
+    font: 13px "Courier New", monospace;
+  }
+  input[type="text"]:focus { border-color: #85b7eb; outline: 3px solid #e6f1fb; }
+  .functions {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .function-button {
+    min-width: 0;
+    padding: 9px 4px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 10px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .function-button:hover { border-color: #85b7eb; }
+  .function-button.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .parameters {
+    min-height: 70px;
+    margin-bottom: 14px;
+    padding: 13px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+  }
+  .parameter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .parameter { display: flex; min-width: 0; flex-direction: column; gap: 6px; color: #77756f; font-size: 11px; }
+  .parameter-row { display: flex; align-items: center; gap: 8px; }
+  input[type="range"] { width: 100%; accent-color: #185fa5; }
+  .range-value { min-width: 28px; color: #0c447c; font: 700 12px "Courier New", monospace; text-align: right; }
+  .no-parameters { padding-top: 10px; color: #999790; font-size: 12px; text-align: center; }
+  .characters {
+    min-height: 54px;
+    margin-bottom: 14px;
+    padding: 11px;
+    overflow-x: auto;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fff;
+    white-space: nowrap;
+  }
+  .character-label { margin-bottom: 8px; color: #999790; font-size: 10px; }
+  .char {
+    display: inline-grid;
+    place-items: center;
+    width: 27px;
+    height: 27px;
+    margin-right: 3px;
+    border: 1px solid #e5e4de;
+    border-radius: 6px;
+    background: #fafaf8;
+    color: #55544f;
+    font: 12px "Courier New", monospace;
+  }
+  .char.space { color: #aaa89f; }
+  .char.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; font-weight: 700; }
+  .char.removed { border-color: #efc980; background: #faeeda; color: #8a5a08; text-decoration: line-through; }
+  .char-index { display: inline-block; width: 30px; margin-right: 0; color: #aaa89f; font: 9px "Courier New", monospace; text-align: center; }
+  .hint {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .sql {
+    margin-bottom: 14px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 13px/1.75 "Courier New", monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .value { color: #a6e3a1; }
+  .number { color: #fab387; }
+  .result {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+    align-items: center;
+    padding: 14px 16px;
+    border: 1px solid #b5d88a;
+    border-radius: 10px;
+    background: #f5faef;
+  }
+  .result-label { color: #6f7c62; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+  .result-value { min-width: 0; overflow-wrap: anywhere; color: #27500a; font: 700 15px "Courier New", monospace; white-space: pre-wrap; }
+  .result-meta { color: #839174; font-size: 10px; white-space: nowrap; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 760px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .functions { grid-template-columns: repeat(4, 1fr); }
+    .parameter-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Строковые функции</h1>
+  <p class="intro">Строковые функции получают текст и возвращают преобразованную строку или число. Меняй исходное значение и параметры — SQL и результат обновятся сразу.</p>
+
+  <section class="input-panel">
+    <div class="label">Исходная строка</div>
+    <input id="source-text" type="text" value="  SQL для Аналитика  " spellcheck="false">
+  </section>
+
+  <div id="functions" class="functions"></div>
+  <section id="parameters" class="parameters"></section>
+  <section id="characters" class="characters"></section>
+  <div id="hint" class="hint"></div>
+  <div id="sql" class="sql"></div>
+
+  <div class="result">
+    <span class="result-label">Результат</span>
+    <span id="result-value" class="result-value"></span>
+    <span id="result-meta" class="result-meta"></span>
+  </div>
+
+  <p class="note"><b>Диалект:</b> примеры используют синтаксис Trino. В <code>substring</code> позиция первого символа равна <code>1</code>, а не <code>0</code>.</p>
+</main>
+
+<script>
+const functions = [
+  { id: 'lower', label: 'lower' },
+  { id: 'upper', label: 'upper' },
+  { id: 'trim', label: 'trim' },
+  { id: 'length', label: 'length' },
+  { id: 'substring', label: 'substring' },
+  { id: 'replace', label: 'replace' },
+  { id: 'concat', label: 'concat' },
+];
+
+const descriptions = {
+  lower: '<b>lower(string)</b> переводит буквы в нижний регистр.',
+  upper: '<b>upper(string)</b> переводит буквы в верхний регистр.',
+  trim: '<b>trim(string)</b> убирает пробелы в начале и конце строки. Внутренние пробелы остаются.',
+  length: '<b>length(string)</b> возвращает количество символов в строке, включая пробелы.',
+  substring: '<b>substring(string, start, length)</b> извлекает часть строки. Отсчёт начинается с единицы.',
+  replace: '<b>replace(string, search, replacement)</b> заменяет все найденные фрагменты.',
+  concat: '<b>concat(a, b, c)</b> соединяет несколько строк в одну.',
+};
+
+let activeFunction = 'lower';
+const state = {
+  start: 3,
+  substringLength: 8,
+  search: 'Аналитика',
+  replacement: 'анализа данных',
+  prefix: 'Курс: ',
+  suffix: ' ✓',
+};
+
+const sourceInput = document.getElementById('source-text');
+const chars = () => Array.from(sourceInput.value);
+const escapeHtml = (value) => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+const sqlLiteral = (value) => `<span class="value">'${escapeHtml(String(value).replace(/'/g, "''"))}'</span>`;
+
+function calculate() {
+  const source = sourceInput.value;
+  if (activeFunction === 'lower') return source.toLowerCase();
+  if (activeFunction === 'upper') return source.toUpperCase();
+  if (activeFunction === 'trim') return source.trim();
+  if (activeFunction === 'length') return chars().length;
+  if (activeFunction === 'substring') return chars().slice(state.start - 1, state.start - 1 + state.substringLength).join('');
+  if (activeFunction === 'replace') {
+    if (state.search === '') return state.replacement + chars().join(state.replacement) + state.replacement;
+    return source.split(state.search).join(state.replacement);
+  }
+  return state.prefix + source + state.suffix;
+}
+
+function renderFunctions() {
+  document.getElementById('functions').innerHTML = functions.map((item) =>
+    `<button class="function-button ${item.id === activeFunction ? 'active' : ''}" type="button" data-function="${item.id}">${item.label}()</button>`
+  ).join('');
+}
+
+function renderParameters() {
+  const root = document.getElementById('parameters');
+  const maxLength = Math.max(1, chars().length);
+  state.start = Math.min(Math.max(1, state.start), maxLength);
+  state.substringLength = Math.min(Math.max(1, state.substringLength), Math.max(1, maxLength - state.start + 1));
+
+  if (activeFunction === 'substring') {
+    root.innerHTML = `<div class="label">Параметры функции</div><div class="parameter-grid">
+      <label class="parameter">Начальная позиция
+        <span class="parameter-row"><input id="start" type="range" min="1" max="${maxLength}" value="${state.start}"><span id="start-value" class="range-value">${state.start}</span></span>
+      </label>
+      <label class="parameter">Количество символов
+        <span class="parameter-row"><input id="substring-length" type="range" min="1" max="${Math.max(1, maxLength - state.start + 1)}" value="${state.substringLength}"><span id="length-value" class="range-value">${state.substringLength}</span></span>
+      </label>
+    </div>`;
+    document.getElementById('start').addEventListener('input', (event) => {
+      state.start = Number(event.target.value);
+      renderParameters();
+      renderDynamic();
+    });
+    document.getElementById('substring-length').addEventListener('input', (event) => {
+      state.substringLength = Number(event.target.value);
+      renderDynamic();
+    });
+    return;
+  }
+
+  if (activeFunction === 'replace') {
+    root.innerHTML = `<div class="label">Параметры функции</div><div class="parameter-grid">
+      <label class="parameter">Что найти<input id="search" type="text"></label>
+      <label class="parameter">На что заменить<input id="replacement" type="text"></label>
+    </div>`;
+    document.getElementById('search').value = state.search;
+    document.getElementById('replacement').value = state.replacement;
+    document.getElementById('search').addEventListener('input', (event) => { state.search = event.target.value; renderDynamic(); });
+    document.getElementById('replacement').addEventListener('input', (event) => { state.replacement = event.target.value; renderDynamic(); });
+    return;
+  }
+
+  if (activeFunction === 'concat') {
+    root.innerHTML = `<div class="label">Параметры функции</div><div class="parameter-grid">
+      <label class="parameter">Префикс<input id="prefix" type="text"></label>
+      <label class="parameter">Суффикс<input id="suffix" type="text"></label>
+    </div>`;
+    document.getElementById('prefix').value = state.prefix;
+    document.getElementById('suffix').value = state.suffix;
+    document.getElementById('prefix').addEventListener('input', (event) => { state.prefix = event.target.value; renderDynamic(); });
+    document.getElementById('suffix').addEventListener('input', (event) => { state.suffix = event.target.value; renderDynamic(); });
+    return;
+  }
+
+  root.innerHTML = '<div class="label">Параметры функции</div><div class="no-parameters">Дополнительные аргументы не нужны</div>';
+}
+
+function renderCharacters() {
+  const sourceChars = chars();
+  let firstNonSpace = sourceChars.findIndex((char) => char !== ' ');
+  if (firstNonSpace === -1) firstNonSpace = sourceChars.length;
+  let lastNonSpace = sourceChars.length - 1;
+  while (lastNonSpace >= 0 && sourceChars[lastNonSpace] === ' ') lastNonSpace--;
+
+  const boxes = sourceChars.map((char, index) => {
+    const inSubstring = activeFunction === 'substring' && index >= state.start - 1 && index < state.start - 1 + state.substringLength;
+    const removedByTrim = activeFunction === 'trim' && (index < firstNonSpace || index > lastNonSpace);
+    const classes = ['char', char === ' ' ? 'space' : '', inSubstring ? 'active' : '', removedByTrim ? 'removed' : ''].filter(Boolean).join(' ');
+    return `<span class="${classes}">${char === ' ' ? '·' : escapeHtml(char)}</span>`;
+  }).join('');
+  const indexes = sourceChars.map((_, index) => `<span class="char-index">${index + 1}</span>`).join('');
+  document.getElementById('characters').innerHTML = `<div class="character-label">Символы исходной строки · пробел показан точкой</div><div>${boxes || '<span style="color:#aaa89f;font-size:12px">пустая строка</span>'}</div>${sourceChars.length ? `<div>${indexes}</div>` : ''}`;
+}
+
+function renderSql() {
+  const source = sqlLiteral(sourceInput.value);
+  let expression;
+  if (activeFunction === 'lower') expression = `<span class="fn">lower</span>(${source})`;
+  else if (activeFunction === 'upper') expression = `<span class="fn">upper</span>(${source})`;
+  else if (activeFunction === 'trim') expression = `<span class="fn">trim</span>(${source})`;
+  else if (activeFunction === 'length') expression = `<span class="fn">length</span>(${source})`;
+  else if (activeFunction === 'substring') expression = `<span class="fn">substring</span>(${source}, <span class="number">${state.start}</span>, <span class="number">${state.substringLength}</span>)`;
+  else if (activeFunction === 'replace') expression = `<span class="fn">replace</span>(${source}, ${sqlLiteral(state.search)}, ${sqlLiteral(state.replacement)})`;
+  else expression = `<span class="fn">concat</span>(${sqlLiteral(state.prefix)}, ${source}, ${sqlLiteral(state.suffix)})`;
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> ${expression} <span class="kw">AS</span> result`;
+}
+
+function renderResult() {
+  const result = calculate();
+  document.getElementById('result-value').textContent = typeof result === 'number' ? String(result) : `“${result}”`;
+  document.getElementById('result-meta').textContent = typeof result === 'number' ? 'BIGINT' : `${Array.from(result).length} симв.`;
+}
+
+function renderDynamic() {
+  const lengthValue = document.getElementById('length-value');
+  if (lengthValue) lengthValue.textContent = state.substringLength;
+  renderCharacters();
+  document.getElementById('hint').innerHTML = descriptions[activeFunction];
+  renderSql();
+  renderResult();
+}
+
+function render() {
+  renderFunctions();
+  renderParameters();
+  renderDynamic();
+}
+
+document.getElementById('functions').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-function]');
+  if (!button) return;
+  activeFunction = button.dataset.function;
+  render();
+});
+sourceInput.addEventListener('input', () => { renderParameters(); renderDynamic(); });
+
+render();
+</script>
+</body>
+</html>

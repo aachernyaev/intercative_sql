@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EXISTS и NOT EXISTS</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-bottom: 14px;
+    padding: 12px;
+    border: 1px solid #e5e4de;
+    border-radius: 9px;
+    background: #fafaf8;
+  }
+  .control { min-width: 190px; }
+  .control-title { margin-bottom: 7px; color: #85837c; font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .toggle { display: inline-grid; grid-template-columns: repeat(2, 1fr); gap: 4px; padding: 3px; border-radius: 8px; background: #ecebe6; }
+  .toggle button {
+    padding: 7px 13px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #77756f;
+    font: 700 11px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .toggle button.active { background: #fff; color: #0c447c; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  select {
+    min-width: 190px;
+    padding: 8px 9px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #373734;
+    font: 12px "Courier New", monospace;
+  }
+  .sql {
+    margin-bottom: 16px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 12px/1.7 "Courier New", monospace;
+    white-space: pre;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .column { color: #f9e2af; }
+  .value { color: #a6e3a1; }
+  .correlation { padding: 1px 3px; border-radius: 3px; background: rgba(249,226,175,.13); }
+  .sources { display: grid; grid-template-columns: .92fr 1.08fr; gap: 14px; margin-bottom: 16px; }
+  .section-title { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .section-meta { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 10px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .user-row { cursor: pointer; }
+  .user-row:hover td { background: #f3f8fd; }
+  .user-row.selected td { box-shadow: inset 0 1px #85b7eb, inset 0 -1px #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .user-row.selected td:first-child { box-shadow: inset 2px 0 #185fa5, inset 0 1px #85b7eb, inset 0 -1px #85b7eb; }
+  .user-row.passes:not(.selected) td { background: #f5faef; color: #3b6d11; }
+  .user-row.fails:not(.selected) td { opacity: .35; }
+  .order-row.match td { background: #f0eaf8; color: #5b2d8e; font-weight: 650; }
+  .order-row.dim td { opacity: .3; }
+  .truth { display: inline-flex; min-width: 45px; justify-content: center; padding: 2px 6px; border-radius: 10px; font: 700 9px "Courier New", monospace; }
+  .truth.true { background: #e7f3d8; color: #3b6d11; }
+  .truth.false { background: #fbe9e7; color: #993c1d; }
+  .explain {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 10px;
+    align-items: stretch;
+    margin-bottom: 16px;
+  }
+  .step { min-width: 0; padding: 12px; border: 1px solid #e5e4de; border-radius: 10px; background: #fafaf8; }
+  .step.result-pass { border-color: #b5d88a; background: #f5faef; }
+  .step.result-fail { border-color: #efb6aa; background: #fdf3f1; }
+  .step-label { margin-bottom: 7px; color: #85837c; font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .05em; }
+  .step-value { color: #343431; font-size: 13px; font-weight: 700; line-height: 1.45; }
+  .step-detail { margin-top: 5px; color: #85837c; font-size: 10.5px; line-height: 1.4; }
+  .arrow { align-self: center; color: #185fa5; font-size: 19px; }
+  .result-title { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: #3b6d11; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .empty { padding: 26px 10px; color: #999790; font-size: 11px; text-align: center; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 780px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .sources, .explain { grid-template-columns: 1fr; }
+    .arrow { transform: rotate(90deg); text-align: center; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>EXISTS и NOT EXISTS</h1>
+  <p class="intro"><code>EXISTS</code> проверяет, вернул ли подзапрос хотя бы одну строку. <code>NOT EXISTS</code> оставляет внешнюю строку, только если подзапрос ничего не нашёл.</p>
+
+  <section class="controls">
+    <div class="control">
+      <div class="control-title">Какой результат нужен</div>
+      <div id="mode-toggle" class="toggle">
+        <button class="active" type="button" data-mode="exists">EXISTS</button>
+        <button type="button" data-mode="not-exists">NOT EXISTS</button>
+      </div>
+    </div>
+    <label class="control">
+      <div class="control-title">Какие заказы искать</div>
+      <select id="status-select">
+        <option value="paid">status = 'paid'</option>
+        <option value="cancelled">status = 'cancelled'</option>
+        <option value="refunded">status = 'refunded'</option>
+        <option value="any">любой status</option>
+      </select>
+    </label>
+  </section>
+
+  <div id="sql" class="sql"></div>
+
+  <section class="sources">
+    <div>
+      <div class="section-title"><span>users AS u</span><span class="section-meta">нажми на строку</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>user_id</th><th>name</th><th>подзапрос</th></tr></thead>
+        <tbody id="users-body"></tbody>
+      </table></div>
+    </div>
+    <div>
+      <div class="section-title"><span>orders AS o</span><span id="orders-meta" class="section-meta"></span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>order_id</th><th>user_id</th><th>status</th><th>amount</th></tr></thead>
+        <tbody id="orders-body"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section id="explain" class="explain"></section>
+
+  <div class="result-title"><span>Результат внешнего SELECT</span><span id="result-meta" class="section-meta"></span></div>
+  <div id="result" class="table-wrap"></div>
+
+  <p class="note"><b>Важно:</b> подзапрос связан с текущим пользователем условием <code>o.user_id = u.user_id</code>. Запись <code>SELECT 1</code> подчёркивает, что для EXISTS важен сам факт найденной строки, а не значения её столбцов.</p>
+</main>
+
+<script>
+const users = [
+  { user_id: 101, name: 'Анна' },
+  { user_id: 102, name: 'Борис' },
+  { user_id: 103, name: 'Вера' },
+  { user_id: 104, name: 'Глеб' },
+  { user_id: 105, name: 'Дина' },
+];
+
+const orders = [
+  { order_id: 501, user_id: 101, status: 'paid', amount: 3200 },
+  { order_id: 502, user_id: 101, status: 'cancelled', amount: 900 },
+  { order_id: 503, user_id: 102, status: 'cancelled', amount: 700 },
+  { order_id: 504, user_id: 103, status: 'paid', amount: 1500 },
+  { order_id: 505, user_id: 103, status: 'paid', amount: 800 },
+  { order_id: 506, user_id: 105, status: 'refunded', amount: 1200 },
+];
+
+let mode = 'exists';
+let status = 'paid';
+let selectedUserId = 101;
+
+function matches(user) {
+  return orders.filter((order) => order.user_id === user.user_id && (status === 'any' || order.status === status));
+}
+
+function existsValue(user) {
+  return matches(user).length > 0;
+}
+
+function passes(user) {
+  return mode === 'exists' ? existsValue(user) : !existsValue(user);
+}
+
+function renderSql() {
+  const statusLine = status === 'any' ? '' : `\n    <span class="kw">AND</span> o.status = <span class="value">'${status}'</span>`;
+  const predicate = mode === 'exists' ? 'EXISTS' : 'NOT EXISTS';
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> u.user_id, u.name\n<span class="kw">FROM</span> users <span class="kw">AS</span> u\n<span class="kw">WHERE</span> <span class="kw">${predicate}</span> (\n  <span class="kw">SELECT</span> 1\n  <span class="kw">FROM</span> orders <span class="kw">AS</span> o\n  <span class="kw">WHERE</span> <span class="correlation">o.user_id = u.user_id</span>${statusLine}\n)\n<span class="kw">ORDER BY</span> u.user_id`;
+}
+
+function renderUsers() {
+  document.getElementById('users-body').innerHTML = users.map((user) => {
+    const truth = existsValue(user);
+    const classes = ['user-row', selectedUserId === user.user_id ? 'selected' : '', passes(user) ? 'passes' : 'fails'].filter(Boolean).join(' ');
+    return `<tr class="${classes}" data-user-id="${user.user_id}"><td>${user.user_id}</td><td>${user.name}</td><td><span class="truth ${truth}">${String(truth).toUpperCase()}</span></td></tr>`;
+  }).join('');
+}
+
+function renderOrders() {
+  const user = users.find((row) => row.user_id === selectedUserId);
+  const matchedIds = new Set(matches(user).map((order) => order.order_id));
+  document.getElementById('orders-meta').textContent = `поиск для user_id = ${selectedUserId}`;
+  document.getElementById('orders-body').innerHTML = orders.map((order) => {
+    const isMatch = matchedIds.has(order.order_id);
+    return `<tr class="order-row ${isMatch ? 'match' : 'dim'}"><td>${order.order_id}</td><td>${order.user_id}</td><td>${order.status}</td><td>${order.amount}</td></tr>`;
+  }).join('');
+}
+
+function renderExplain() {
+  const user = users.find((row) => row.user_id === selectedUserId);
+  const found = matches(user);
+  const truth = found.length > 0;
+  const result = passes(user);
+  const predicate = mode === 'exists' ? 'EXISTS' : 'NOT EXISTS';
+  document.getElementById('explain').innerHTML = `
+    <div class="step">
+      <div class="step-label">1 · внешняя строка</div>
+      <div class="step-value">${user.name}, user_id = ${user.user_id}</div>
+      <div class="step-detail">Значение u.user_id доступно внутри подзапроса.</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <div class="step-label">2 · подзапрос</div>
+      <div class="step-value">Найдено строк: ${found.length}</div>
+      <div class="step-detail">EXISTS = ${String(truth).toUpperCase()}; количество больше нуля не меняет TRUE.</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step ${result ? 'result-pass' : 'result-fail'}">
+      <div class="step-label">3 · WHERE ${predicate}</div>
+      <div class="step-value">${String(result).toUpperCase()} · строка ${result ? 'остаётся' : 'отбрасывается'}</div>
+      <div class="step-detail">${mode === 'exists' ? 'Ищем наличие строки.' : 'Инвертируем результат EXISTS.'}</div>
+    </div>`;
+}
+
+function table(rows) {
+  if (!rows.length) return '<div class="empty">Результат пуст</div>';
+  return `<table><thead><tr><th>user_id</th><th>name</th></tr></thead><tbody>${rows.map((user) => `<tr><td>${user.user_id}</td><td>${user.name}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function renderResult() {
+  const rows = users.filter(passes);
+  document.getElementById('result').innerHTML = table(rows);
+  document.getElementById('result-meta').textContent = `${rows.length} из ${users.length} пользователей`;
+}
+
+function render() {
+  document.querySelectorAll('[data-mode]').forEach((button) => button.classList.toggle('active', button.dataset.mode === mode));
+  renderSql();
+  renderUsers();
+  renderOrders();
+  renderExplain();
+  renderResult();
+}
+
+document.getElementById('mode-toggle').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-mode]');
+  if (!button) return;
+  mode = button.dataset.mode;
+  render();
+});
+
+document.getElementById('status-select').addEventListener('change', (event) => {
+  status = event.target.value;
+  render();
+});
+
+document.getElementById('users-body').addEventListener('click', (event) => {
+  const row = event.target.closest('[data-user-id]');
+  if (!row) return;
+  selectedUserId = Number(row.dataset.userId);
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

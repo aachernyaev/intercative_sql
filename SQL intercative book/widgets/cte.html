@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WITH и CTE</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .top-controls { display: grid; grid-template-columns: .8fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .control {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #e5e4de;
+    border-radius: 9px;
+    background: #fafaf8;
+  }
+  .control-title { margin-bottom: 8px; color: #85837c; font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .mode-buttons { display: flex; gap: 6px; }
+  .mode-button {
+    flex: 1;
+    padding: 7px 5px;
+    border: 1px solid #d3d1c7;
+    border-radius: 7px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 10px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .mode-button.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  select {
+    width: 100%;
+    padding: 8px 9px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #373734;
+    font: 12px "Courier New", monospace;
+  }
+  .range-row { display: flex; align-items: center; gap: 8px; }
+  input[type="range"] { width: 100%; accent-color: #185fa5; }
+  .range-value { min-width: 24px; color: #0c447c; font: 700 13px "Courier New", monospace; text-align: right; }
+  .stages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+  .stage {
+    padding: 9px 7px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #77756f;
+    cursor: pointer;
+  }
+  .stage-number { display: block; margin-bottom: 2px; color: #aaa89f; font-size: 9px; }
+  .stage-name { font: 700 11px "Courier New", monospace; }
+  .stage.done { border-color: #b5d88a; background: #f5faef; color: #3b6d11; }
+  .stage.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .hint {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  .panel-title { display: flex; justify-content: space-between; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .panel-meta { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .sql {
+    padding: 12px 0;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 11.5px/1.65 "Courier New", monospace;
+  }
+  .sql-block { display: block; padding: 5px 15px; border-left: 3px solid transparent; white-space: pre; transition: .18s; }
+  .sql-block + .sql-block { border-top: 1px solid rgba(255,255,255,.06); }
+  .sql-block.current { border-left-color: #89b4fa; background: rgba(137,180,250,.14); }
+  .sql-block.done:not(.current) { background: rgba(166,227,161,.05); }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .name { color: #f9e2af; }
+  .value { color: #a6e3a1; }
+  .number { color: #fab387; }
+  .stage-card {
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .stage-card b { display: block; margin-bottom: 3px; color: #0c447c; font: 700 11px "Courier New", monospace; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 10px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .result-row td { background: #f5faef; color: #3b6d11; }
+  .group-row td { background: #f7f4ff; color: #5b2d8e; }
+  .source-name { display: inline-block; padding: 2px 6px; border-radius: 5px; background: #e6f1fb; color: #0c447c; font: 700 9px "Courier New", monospace; }
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 10px;
+    align-items: center;
+    margin-top: 14px;
+    padding: 12px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+  }
+  .comparison-item { color: #77756f; font-size: 11px; text-align: center; }
+  .comparison-item b { display: block; margin-bottom: 3px; color: #2c2c2a; font: 700 11px "Courier New", monospace; }
+  .comparison-sign { color: #3b6d11; font-size: 20px; }
+  .navigation { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; }
+  .nav-button { padding: 8px 13px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fff; color: #55544f; cursor: pointer; }
+  .nav-button.primary { border-color: #185fa5; background: #185fa5; color: #fff; }
+  .nav-button:disabled { visibility: hidden; }
+  .nav-position { color: #999790; font-size: 11px; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 760px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .top-controls, .layout { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>WITH и CTE</h1>
+  <p class="intro"><code>WITH</code> даёт подзапросу имя. Такой именованный результат называется CTE — Common Table Expression — и доступен внутри текущего SQL-выражения.</p>
+
+  <div class="top-controls">
+    <section class="control">
+      <div class="control-title">Как записать логику</div>
+      <div class="mode-buttons"><button class="mode-button active" type="button" data-mode="cte">WITH</button><button class="mode-button" type="button" data-mode="nested">Вложенно</button></div>
+    </section>
+    <section class="control">
+      <div class="control-title">Фильтр первого этапа</div>
+      <select id="status"><option value="active">status = 'active'</option><option value="inactive">status = 'inactive'</option></select>
+    </section>
+    <section class="control">
+      <div class="control-title">Финальный фильтр · listing_count</div>
+      <div class="range-row"><input id="min-count" type="range" min="1" max="3" value="2"><span id="min-count-value" class="range-value">2</span></div>
+    </section>
+  </div>
+
+  <div id="stages" class="stages">
+    <button class="stage active" type="button" data-stage="0"><span class="stage-number">1</span><span class="stage-name">active_listings</span></button>
+    <button class="stage" type="button" data-stage="1"><span class="stage-number">2</span><span class="stage-name">city_stats</span></button>
+    <button class="stage" type="button" data-stage="2"><span class="stage-number">3</span><span class="stage-name">final SELECT</span></button>
+  </div>
+
+  <div id="hint" class="hint"></div>
+
+  <div class="layout">
+    <section>
+      <div class="panel-title"><span id="sql-title">Запрос с WITH</span><span class="panel-meta">текущий блок подсвечен</span></div>
+      <div id="sql" class="sql"></div>
+    </section>
+    <section>
+      <div class="panel-title"><span>Результат этапа</span><span id="result-meta" class="panel-meta"></span></div>
+      <div id="stage-card" class="stage-card"></div>
+      <div id="result-wrap" class="table-wrap"></div>
+    </section>
+  </div>
+
+  <div class="comparison">
+    <div class="comparison-item"><b>Вложенные подзапросы</b>логика спрятана внутри скобок</div>
+    <div class="comparison-sign">=</div>
+    <div class="comparison-item"><b>WITH + CTE</b>те же этапы получают имена</div>
+  </div>
+
+  <div class="navigation">
+    <button id="previous" class="nav-button" type="button">← Назад</button>
+    <span id="position" class="nav-position"></span>
+    <button id="next" class="nav-button primary" type="button">Дальше →</button>
+  </div>
+
+  <p class="note"><b>Особенность Trino:</b> CTE обычно встраивается в места использования, а не сохраняется автоматически как отдельный промежуточный результат. Поэтому <code>WITH</code> прежде всего помогает структурировать запрос.</p>
+</main>
+
+<script>
+const listings = [
+  { item_id: 101, city: 'Москва', price: 120, status: 'active' },
+  { item_id: 102, city: 'Москва', price: 180, status: 'active' },
+  { item_id: 103, city: 'Москва', price: 900, status: 'inactive' },
+  { item_id: 104, city: 'Казань', price: 80, status: 'active' },
+  { item_id: 105, city: 'Казань', price: 220, status: 'active' },
+  { item_id: 106, city: 'Казань', price: 300, status: 'active' },
+  { item_id: 107, city: 'Самара', price: 520, status: 'active' },
+  { item_id: 108, city: 'Самара', price: 300, status: 'inactive' },
+  { item_id: 109, city: 'Пермь', price: 400, status: 'active' },
+  { item_id: 110, city: 'Пермь', price: 600, status: 'active' },
+  { item_id: 111, city: 'Пермь', price: 700, status: 'inactive' },
+];
+
+const stageInfo = [
+  { name: 'active_listings', text: 'Первый CTE фильтрует исходную таблицу и становится именованным набором строк.' },
+  { name: 'city_stats', text: 'Второй CTE читает первый по имени, группирует его строки и создаёт статистику по городам.' },
+  { name: 'final SELECT', text: 'Финальный запрос читает city_stats как обычную таблицу, фильтрует и сортирует результат.' },
+];
+
+let viewMode = 'cte';
+let currentStage = 0;
+let status = 'active';
+let minCount = 2;
+
+const filteredRows = () => listings.filter((row) => row.status === status);
+
+function statsRows() {
+  const groups = new Map();
+  filteredRows().forEach((row) => {
+    if (!groups.has(row.city)) groups.set(row.city, []);
+    groups.get(row.city).push(row.price);
+  });
+  return [...groups.entries()].map(([city, prices]) => ({
+    city,
+    avg_price: prices.reduce((sum, price) => sum + price, 0) / prices.length,
+    listing_count: prices.length,
+  }));
+}
+
+const finalRows = () => statsRows().filter((row) => row.listing_count >= minCount).sort((a, b) => b.avg_price - a.avg_price);
+const format = (value) => typeof value === 'number' ? value.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : value;
+
+function block(content, stage) {
+  return `<span class="sql-block ${stage === currentStage ? 'current' : ''} ${stage < currentStage ? 'done' : ''}">${content}</span>`;
+}
+
+function cteSql() {
+  return block(`<span class="kw">WITH</span> <span class="name">active_listings</span> <span class="kw">AS</span> (\n  <span class="kw">SELECT</span> item_id, city, price\n  <span class="kw">FROM</span> listings\n  <span class="kw">WHERE</span> status = <span class="value">'${status}'</span>\n),`, 0) +
+    block(`<span class="name">city_stats</span> <span class="kw">AS</span> (\n  <span class="kw">SELECT</span> city,\n         <span class="fn">avg</span>(price) <span class="kw">AS</span> avg_price,\n         <span class="fn">count</span>(*) <span class="kw">AS</span> listing_count\n  <span class="kw">FROM</span> <span class="name">active_listings</span>\n  <span class="kw">GROUP BY</span> city\n)`, 1) +
+    block(`<span class="kw">SELECT</span> city, avg_price, listing_count\n<span class="kw">FROM</span> <span class="name">city_stats</span>\n<span class="kw">WHERE</span> listing_count &gt;= <span class="number">${minCount}</span>\n<span class="kw">ORDER BY</span> avg_price <span class="kw">DESC</span>`, 2);
+}
+
+function nestedSql() {
+  return block(`<span class="kw">SELECT</span> city, avg_price, listing_count\n<span class="kw">FROM</span> (`, 2) +
+    block(`  <span class="kw">SELECT</span> city,\n         <span class="fn">avg</span>(price) <span class="kw">AS</span> avg_price,\n         <span class="fn">count</span>(*) <span class="kw">AS</span> listing_count\n  <span class="kw">FROM</span> (`, 1) +
+    block(`    <span class="kw">SELECT</span> item_id, city, price\n    <span class="kw">FROM</span> listings\n    <span class="kw">WHERE</span> status = <span class="value">'${status}'</span>`, 0) +
+    block(`  ) <span class="kw">AS</span> <span class="name">active_listings</span>\n  <span class="kw">GROUP BY</span> city`, 1) +
+    block(`) <span class="kw">AS</span> <span class="name">city_stats</span>\n<span class="kw">WHERE</span> listing_count &gt;= <span class="number">${minCount}</span>\n<span class="kw">ORDER BY</span> avg_price <span class="kw">DESC</span>`, 2);
+}
+
+function renderSql() {
+  document.getElementById('sql-title').textContent = viewMode === 'cte' ? 'Запрос с WITH' : 'Эквивалентный вложенный запрос';
+  document.getElementById('sql').innerHTML = viewMode === 'cte' ? cteSql() : nestedSql();
+}
+
+function table(columns, rows, rowClass) {
+  if (!rows.length) return '<div style="padding:28px;text-align:center;color:#999790;font-size:11px">Результат этапа пуст</div>';
+  return `<table><thead><tr>${columns.map((column) => `<th>${column}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr class="${rowClass}">${columns.map((column) => `<td>${format(row[column])}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+function renderResult() {
+  let rows;
+  let columns;
+  let rowClass;
+  if (currentStage === 0) {
+    rows = filteredRows();
+    columns = ['item_id', 'city', 'price'];
+    rowClass = 'result-row';
+  } else if (currentStage === 1) {
+    rows = statsRows();
+    columns = ['city', 'avg_price', 'listing_count'];
+    rowClass = 'group-row';
+  } else {
+    rows = finalRows();
+    columns = ['city', 'avg_price', 'listing_count'];
+    rowClass = 'result-row';
+  }
+  document.getElementById('result-meta').textContent = `${rows.length} строк`;
+  document.getElementById('stage-card').innerHTML = `<b><span class="source-name">${stageInfo[currentStage].name}</span></b>${stageInfo[currentStage].text}`;
+  document.getElementById('result-wrap').innerHTML = table(columns, rows, rowClass);
+}
+
+function renderHint() {
+  document.getElementById('hint').innerHTML = viewMode === 'cte'
+    ? '<b>WITH</b> выносит внутренние запросы наверх и даёт им имена. CTE могут ссылаться на предыдущие CTE в той же цепочке.'
+    : '<b>Та же логика без WITH:</b> результаты совпадают, но этапы вложены друг в друга и читаются изнутри наружу.';
+}
+
+function render() {
+  document.querySelectorAll('[data-mode]').forEach((button) => button.classList.toggle('active', button.dataset.mode === viewMode));
+  document.querySelectorAll('[data-stage]').forEach((button) => {
+    const index = Number(button.dataset.stage);
+    button.classList.toggle('active', index === currentStage);
+    button.classList.toggle('done', index < currentStage);
+  });
+  document.getElementById('status').value = status;
+  document.getElementById('min-count-value').textContent = minCount;
+  renderHint();
+  renderSql();
+  renderResult();
+  document.getElementById('previous').disabled = currentStage === 0;
+  document.getElementById('next').disabled = currentStage === stageInfo.length - 1;
+  document.getElementById('position').textContent = `${currentStage + 1} из ${stageInfo.length}`;
+}
+
+document.querySelector('.mode-buttons').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-mode]');
+  if (!button) return;
+  viewMode = button.dataset.mode;
+  render();
+});
+document.getElementById('stages').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-stage]');
+  if (!button) return;
+  currentStage = Number(button.dataset.stage);
+  render();
+});
+document.getElementById('status').addEventListener('change', (event) => { status = event.target.value; render(); });
+document.getElementById('min-count').addEventListener('input', (event) => { minCount = Number(event.target.value); render(); });
+document.getElementById('previous').addEventListener('click', () => { currentStage--; render(); });
+document.getElementById('next').addEventListener('click', () => { currentStage++; render(); });
+
+render();
+</script>
+</body>
+</html>

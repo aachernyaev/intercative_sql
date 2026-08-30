@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Типы JOIN</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 14px; }
+  .tab {
+    padding: 9px 6px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 10px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .tab:hover { border-color: #85b7eb; }
+  .tab.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .hint {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .sources { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: center; margin-bottom: 16px; }
+  .source-title { display: flex; justify-content: space-between; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; }
+  .source-alias { color: #999790; font: 10px "Courier New", monospace; }
+  .join-symbol { text-align: center; }
+  .join-pill { display: inline-block; padding: 6px 9px; border: 1px solid #85b7eb; border-radius: 999px; background: #e6f1fb; color: #0c447c; font: 700 10px "Courier New", monospace; }
+  .join-on { margin-top: 6px; color: #999790; font: 9px "Courier New", monospace; white-space: nowrap; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 10px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .source-row td { transition: opacity .18s, background .18s; }
+  .source-row.included td { background: #f5faef; }
+  .source-row.excluded td { opacity: .25; }
+  .source-row.excluded td:first-child { border-left: 3px solid #d56b6b; padding-left: 5px; }
+  .key { display: inline-grid; place-items: center; min-width: 23px; height: 20px; padding: 0 5px; border-radius: 6px; font: 700 10px "Courier New", monospace; }
+  .key-1 { background: #f0efe8; color: #77756f; }
+  .key-2 { background: #e6f1fb; color: #0c447c; }
+  .key-3 { background: #eaf3de; color: #3b6d11; }
+  .key-4 { background: #faeeda; color: #8a5a08; }
+  .sql {
+    margin-bottom: 14px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 12px/1.75 "Courier New", monospace;
+    white-space: pre;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .join-kw { color: #cba6f7; font-weight: 700; }
+  .column { color: #f9e2af; }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .stat { padding: 5px 9px; border: 1px solid #e5e4de; border-radius: 999px; background: #fafaf8; color: #77756f; font-size: 10px; }
+  .stat b { color: #2c2c2a; }
+  .result-title { display: flex; justify-content: space-between; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .result-count { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .result-row td { background: #fbfbfa; }
+  .null-badge { display: inline-block; padding: 1px 5px; border-radius: 4px; background: #faeeda; color: #633806; font: italic 700 9px "Courier New", monospace; }
+  .pair-mark { color: #aaa89f; font-size: 10px; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 720px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .tabs { grid-template-columns: repeat(3, 1fr); }
+    .sources { grid-template-columns: 1fr; }
+    .join-symbol { padding: 2px 0; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Типы JOIN</h1>
+  <p class="intro">Один и тот же ключ соединения может дать разные результаты. Тип <code>JOIN</code> определяет, сохранятся ли строки без пары.</p>
+
+  <div id="tabs" class="tabs">
+    <button class="tab active" type="button" data-mode="inner">INNER JOIN</button>
+    <button class="tab" type="button" data-mode="left">LEFT JOIN</button>
+    <button class="tab" type="button" data-mode="right">RIGHT JOIN</button>
+    <button class="tab" type="button" data-mode="full">FULL JOIN</button>
+    <button class="tab" type="button" data-mode="cross">CROSS JOIN</button>
+  </div>
+
+  <div id="hint" class="hint"></div>
+
+  <div class="sources">
+    <section>
+      <div class="source-title"><span>users</span><span class="source-alias">левая · u</span></div>
+      <div class="table-wrap"><table><thead><tr><th>user_id</th><th>name</th></tr></thead><tbody id="users-body"></tbody></table></div>
+    </section>
+    <div class="join-symbol"><span id="join-pill" class="join-pill"></span><div id="join-on" class="join-on"></div></div>
+    <section>
+      <div class="source-title"><span>orders</span><span class="source-alias">правая · o</span></div>
+      <div class="table-wrap"><table><thead><tr><th>order_id</th><th>user_id</th><th>amount</th></tr></thead><tbody id="orders-body"></tbody></table></div>
+    </section>
+  </div>
+
+  <div id="sql" class="sql"></div>
+  <div id="stats" class="stats"></div>
+
+  <div class="result-title"><span>Результат соединения</span><span id="result-count" class="result-count"></span></div>
+  <div class="table-wrap"><table><thead id="result-head"></thead><tbody id="result-body"></tbody></table></div>
+
+  <p class="note"><b>Важно:</b> JOIN соединяет пары строк, а не просто «добавляет столбцы». У Веры два заказа, поэтому её строка участвует в двух парах и появляется в результате дважды.</p>
+</main>
+
+<script>
+const users = [
+  { user_id: 1, name: 'Анна' },
+  { user_id: 2, name: 'Борис' },
+  { user_id: 3, name: 'Вера' },
+];
+
+const orders = [
+  { order_id: 'A-10', user_id: 2, amount: 1200 },
+  { order_id: 'A-11', user_id: 3, amount: 800 },
+  { order_id: 'A-12', user_id: 3, amount: 2100 },
+  { order_id: 'A-13', user_id: 4, amount: 500 },
+];
+
+const configs = {
+  inner: { sql: 'INNER JOIN', label: 'INNER', hint: '<b>INNER JOIN</b> оставляет только пары с совпавшим user_id. Анна и заказ пользователя 4 не попадают в результат.' },
+  left: { sql: 'LEFT JOIN', label: 'LEFT', hint: '<b>LEFT JOIN</b> сохраняет всех пользователей. Если заказа нет, столбцы правой таблицы заполняются NULL.' },
+  right: { sql: 'RIGHT JOIN', label: 'RIGHT', hint: '<b>RIGHT JOIN</b> сохраняет все заказы. Для заказа пользователя 4 не найден пользователь, поэтому слева появляются NULL.' },
+  full: { sql: 'FULL OUTER JOIN', label: 'FULL', hint: '<b>FULL JOIN</b> сохраняет строки без пары с обеих сторон и заполняет недостающие столбцы NULL.' },
+  cross: { sql: 'CROSS JOIN', label: 'CROSS', hint: '<b>CROSS JOIN</b> создаёт каждую возможную пару строк. Условие ON не используется: 3 пользователя × 4 заказа = 12 строк.' },
+};
+
+let mode = 'inner';
+const key = (value) => `<span class="key key-${value}">${value}</span>`;
+const nullable = (value) => value === null ? '<span class="null-badge">NULL</span>' : value;
+
+function joinedRows() {
+  const result = [];
+  if (mode === 'cross') {
+    users.forEach((user) => orders.forEach((order) => result.push({ user, order })));
+    return result;
+  }
+
+  if (mode === 'right') {
+    orders.forEach((order) => {
+      const matches = users.filter((user) => user.user_id === order.user_id);
+      matches.length ? matches.forEach((user) => result.push({ user, order })) : result.push({ user: null, order });
+    });
+    return result;
+  }
+
+  users.forEach((user) => {
+    const matches = orders.filter((order) => order.user_id === user.user_id);
+    if (matches.length) matches.forEach((order) => result.push({ user, order }));
+    else if (mode === 'left' || mode === 'full') result.push({ user, order: null });
+  });
+
+  if (mode === 'full') {
+    orders.filter((order) => !users.some((user) => user.user_id === order.user_id)).forEach((order) => result.push({ user: null, order }));
+  }
+  return result;
+}
+
+function includedIds() {
+  if (mode === 'cross' || mode === 'full') return { users: new Set(users.map((row) => row.user_id)), orders: new Set(orders.map((row) => row.order_id)) };
+  if (mode === 'left') return { users: new Set(users.map((row) => row.user_id)), orders: new Set(orders.filter((order) => users.some((user) => user.user_id === order.user_id)).map((row) => row.order_id)) };
+  if (mode === 'right') return { users: new Set(users.filter((user) => orders.some((order) => order.user_id === user.user_id)).map((row) => row.user_id)), orders: new Set(orders.map((row) => row.order_id)) };
+  return {
+    users: new Set(users.filter((user) => orders.some((order) => order.user_id === user.user_id)).map((row) => row.user_id)),
+    orders: new Set(orders.filter((order) => users.some((user) => user.user_id === order.user_id)).map((row) => row.order_id)),
+  };
+}
+
+function renderSources() {
+  const included = includedIds();
+  document.getElementById('users-body').innerHTML = users.map((user) => `<tr class="source-row ${included.users.has(user.user_id) ? 'included' : 'excluded'}"><td>${key(user.user_id)}</td><td>${user.name}</td></tr>`).join('');
+  document.getElementById('orders-body').innerHTML = orders.map((order) => `<tr class="source-row ${included.orders.has(order.order_id) ? 'included' : 'excluded'}"><td>${order.order_id}</td><td>${key(order.user_id)}</td><td>${order.amount.toLocaleString('ru-RU')}</td></tr>`).join('');
+  document.getElementById('join-pill').textContent = configs[mode].label;
+  document.getElementById('join-on').textContent = mode === 'cross' ? 'все пары' : 'u.user_id = o.user_id';
+}
+
+function renderSql() {
+  const on = mode === 'cross' ? '' : '\n  <span class="kw">ON</span> <span class="column">u.user_id</span> = <span class="column">o.user_id</span>';
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> u.user_id, u.name, o.user_id, o.order_id, o.amount\n<span class="kw">FROM</span> users <span class="kw">AS</span> u\n<span class="join-kw">${configs[mode].sql}</span> orders <span class="kw">AS</span> o${on}`;
+}
+
+function renderResult() {
+  const result = joinedRows();
+  document.getElementById('result-head').innerHTML = '<tr><th>u.user_id</th><th>name</th><th></th><th>o.user_id</th><th>order_id</th><th>amount</th></tr>';
+  document.getElementById('result-body').innerHTML = result.map(({ user, order }) => `<tr class="result-row"><td>${user ? key(user.user_id) : nullable(null)}</td><td>${nullable(user ? user.name : null)}</td><td class="pair-mark">↔</td><td>${order ? key(order.user_id) : nullable(null)}</td><td>${nullable(order ? order.order_id : null)}</td><td>${nullable(order ? order.amount.toLocaleString('ru-RU') : null)}</td></tr>`).join('');
+  document.getElementById('result-count').textContent = `${result.length} строк`;
+
+  const included = includedIds();
+  document.getElementById('stats').innerHTML = `<span class="stat">левая: <b>${included.users.size} из ${users.length}</b></span><span class="stat">правая: <b>${included.orders.size} из ${orders.length}</b></span><span class="stat">пар в результате: <b>${result.length}</b></span>`;
+}
+
+function render() {
+  document.querySelectorAll('[data-mode]').forEach((button) => button.classList.toggle('active', button.dataset.mode === mode));
+  document.getElementById('hint').innerHTML = configs[mode].hint;
+  renderSources();
+  renderSql();
+  renderResult();
+}
+
+document.getElementById('tabs').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-mode]');
+  if (!button) return;
+  mode = button.dataset.mode;
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

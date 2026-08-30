@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Даты и интервалы</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .tab {
+    padding: 9px 7px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 11px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .tab:hover { border-color: #85b7eb; }
+  .tab.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .hint {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .control {
+    min-width: 0;
+    padding: 13px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+  }
+  .control.wide { grid-column: span 2; }
+  .control-title { margin-bottom: 8px; color: #85837c; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  select, input[type="date"], input[type="datetime-local"] {
+    width: 100%;
+    padding: 8px 9px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #373734;
+    font: 12px "Courier New", monospace;
+  }
+  input[type="range"] { width: 100%; accent-color: #185fa5; }
+  .range-row { display: flex; align-items: center; gap: 8px; }
+  .range-value { min-width: 34px; color: #0c447c; font: 700 13px "Courier New", monospace; text-align: right; }
+  .operation-buttons { display: flex; gap: 6px; }
+  .operation-button {
+    flex: 1;
+    padding: 7px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 13px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .operation-button.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .sql {
+    margin-bottom: 16px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 13px/1.75 "Courier New", monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .value { color: #a6e3a1; }
+  .number { color: #fab387; }
+  .visual {
+    margin-bottom: 14px;
+    padding: 18px;
+    border: 1px solid #e5e4de;
+    border-radius: 12px;
+    background: #fafaf8;
+  }
+  .date-flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 14px;
+    align-items: center;
+  }
+  .date-box {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid #d8d6cf;
+    border-radius: 10px;
+    background: #fff;
+    text-align: center;
+  }
+  .date-box.result { border-color: #b5d88a; background: #f5faef; }
+  .date-label { margin-bottom: 6px; color: #999790; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+  .date-value { color: #343431; font: 700 14px "Courier New", monospace; overflow-wrap: anywhere; }
+  .date-box.result .date-value { color: #27500a; }
+  .date-arrow { color: #185fa5; font-size: 20px; text-align: center; }
+  .date-arrow span { display: block; margin-top: 3px; color: #77756f; font: 10px "Courier New", monospace; white-space: nowrap; }
+  .parts { display: flex; justify-content: center; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
+  .part { padding: 5px 8px; border: 1px solid #d8d6cf; border-radius: 7px; background: #fff; color: #55544f; font: 11px "Courier New", monospace; }
+  .part.kept { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; font-weight: 700; }
+  .part.reset { border-color: #efc980; background: #faeeda; color: #8a5a08; }
+  .result-summary {
+    padding: 12px 14px;
+    border: 1px solid #b5d88a;
+    border-radius: 10px;
+    background: #f5faef;
+    color: #3e5f24;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .result-summary b { color: #27500a; font-family: "Courier New", monospace; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 720px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .tabs { grid-template-columns: 1fr 1fr; }
+    .controls { grid-template-columns: 1fr; }
+    .control.wide { grid-column: auto; }
+    .date-flow { grid-template-columns: 1fr; }
+    .date-arrow { transform: rotate(90deg); }
+    .date-arrow span { display: none; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Даты и интервалы</h1>
+  <p class="intro">В Trino даты и временные метки — отдельные типы. Для сдвига, разницы и округления времени используются функции и значения <code>INTERVAL</code>.</p>
+
+  <div id="tabs" class="tabs">
+    <button class="tab active" type="button" data-mode="add">date_add</button>
+    <button class="tab" type="button" data-mode="diff">date_diff</button>
+    <button class="tab" type="button" data-mode="trunc">date_trunc</button>
+    <button class="tab" type="button" data-mode="interval">INTERVAL</button>
+  </div>
+
+  <div id="hint" class="hint"></div>
+  <section id="controls" class="controls"></section>
+  <div id="sql" class="sql"></div>
+  <section id="visual" class="visual"></section>
+  <div id="result-summary" class="result-summary"></div>
+
+  <p class="note"><b>Диалект:</b> формы вызовов и единицы соответствуют Trino. В <code>date_diff(unit, start, end)</code> результат считается как <code>end − start</code>.</p>
+</main>
+
+<script>
+const state = {
+  mode: 'add',
+  add: { date: '2026-08-23', amount: 7, unit: 'day' },
+  diff: { start: '2026-08-20T09:00', end: '2026-08-23T14:00', unit: 'hour' },
+  trunc: { timestamp: '2026-08-23T14:37', unit: 'month' },
+  interval: { date: '2026-08-23', amount: 2, unit: 'MONTH', operation: '+' },
+};
+
+const hints = {
+  add: '<b>date_add(unit, value, date)</b> сдвигает дату. Отрицательное значение двигает её назад.',
+  diff: '<b>date_diff(unit, start, end)</b> возвращает целое количество выбранных единиц между двумя моментами.',
+  trunc: '<b>date_trunc(unit, timestamp)</b> возвращает начало часа, дня, недели, месяца, квартала или года.',
+  interval: '<b>INTERVAL</b> — самостоятельное значение длительности. Его можно прибавлять к дате или вычитать из неё.',
+};
+
+const pad = (value) => String(value).padStart(2, '0');
+
+function parseDate(value) {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function parseTimestamp(value) {
+  const [datePart, timePart = '00:00'] = value.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute, second = 0] = timePart.split(':').map(Number);
+  return new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+}
+
+function formatDate(date) {
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
+}
+
+function formatTimestamp(date) {
+  return `${formatDate(date)} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}.000`;
+}
+
+function addMonthsClamped(date, months) {
+  const result = new Date(date.getTime());
+  const originalDay = result.getUTCDate();
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() + months);
+  const lastDay = new Date(Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0)).getUTCDate();
+  result.setUTCDate(Math.min(originalDay, lastDay));
+  return result;
+}
+
+function addUnit(date, amount, unit) {
+  const result = new Date(date.getTime());
+  if (unit === 'day') result.setUTCDate(result.getUTCDate() + amount);
+  else if (unit === 'week') result.setUTCDate(result.getUTCDate() + amount * 7);
+  else if (unit === 'month') return addMonthsClamped(result, amount);
+  else if (unit === 'quarter') return addMonthsClamped(result, amount * 3);
+  else return addMonthsClamped(result, amount * 12);
+  return result;
+}
+
+function truncate(date, unit) {
+  const result = new Date(date.getTime());
+  if (unit === 'year') {
+    result.setUTCMonth(0, 1);
+    result.setUTCHours(0, 0, 0, 0);
+  } else if (unit === 'quarter') {
+    result.setUTCMonth(Math.floor(result.getUTCMonth() / 3) * 3, 1);
+    result.setUTCHours(0, 0, 0, 0);
+  } else if (unit === 'month') {
+    result.setUTCDate(1);
+    result.setUTCHours(0, 0, 0, 0);
+  } else if (unit === 'week') {
+    const daysFromMonday = (result.getUTCDay() + 6) % 7;
+    result.setUTCDate(result.getUTCDate() - daysFromMonday);
+    result.setUTCHours(0, 0, 0, 0);
+  } else if (unit === 'day') {
+    result.setUTCHours(0, 0, 0, 0);
+  } else {
+    result.setUTCMinutes(0, 0, 0);
+  }
+  return result;
+}
+
+function control(title, body, wide = false) {
+  return `<div class="control ${wide ? 'wide' : ''}"><div class="control-title">${title}</div>${body}</div>`;
+}
+
+function renderControls() {
+  const root = document.getElementById('controls');
+  const current = state[state.mode];
+
+  if (state.mode === 'add') {
+    root.innerHTML = control('Исходная дата', `<input id="date" type="date" value="${current.date}">`) +
+      control('Сдвиг', `<div class="range-row"><input id="amount" type="range" min="-30" max="30" value="${current.amount}"><span id="amount-value" class="range-value">${current.amount}</span></div>`) +
+      control('Единица', `<select id="unit"><option value="day">day</option><option value="week">week</option><option value="month">month</option><option value="year">year</option></select>`);
+  } else if (state.mode === 'diff') {
+    root.innerHTML = control('Начало', `<input id="start" type="datetime-local" value="${current.start}">`) +
+      control('Конец', `<input id="end" type="datetime-local" value="${current.end}">`) +
+      control('Единица', `<select id="unit"><option value="hour">hour</option><option value="day">day</option><option value="week">week</option></select>`);
+  } else if (state.mode === 'trunc') {
+    root.innerHTML = control('Исходный timestamp', `<input id="timestamp" type="datetime-local" value="${current.timestamp}">`, true) +
+      control('До начала периода', `<select id="unit"><option value="hour">hour</option><option value="day">day</option><option value="week">week</option><option value="month">month</option><option value="quarter">quarter</option><option value="year">year</option></select>`);
+  } else {
+    root.innerHTML = control('Исходная дата', `<input id="date" type="date" value="${current.date}">`) +
+      control('Операция', `<div class="operation-buttons"><button class="operation-button ${current.operation === '+' ? 'active' : ''}" type="button" data-operation="+">+</button><button class="operation-button ${current.operation === '-' ? 'active' : ''}" type="button" data-operation="-">−</button></div>`) +
+      control('Интервал', `<div class="range-row"><input id="amount" type="range" min="1" max="24" value="${current.amount}"><span id="amount-value" class="range-value">${current.amount}</span></div><select id="unit"><option value="DAY">DAY</option><option value="MONTH">MONTH</option><option value="YEAR">YEAR</option></select>`);
+  }
+
+  Object.entries(current).forEach(([key, value]) => {
+    const element = document.getElementById(key);
+    if (element && element.tagName === 'SELECT') element.value = value;
+  });
+
+  root.querySelectorAll('input, select').forEach((element) => element.addEventListener('input', (event) => {
+    const key = event.target.id;
+    current[key] = event.target.type === 'range' ? Number(event.target.value) : event.target.value;
+    renderDynamic();
+  }));
+
+  root.querySelectorAll('[data-operation]').forEach((button) => button.addEventListener('click', () => {
+    current.operation = button.dataset.operation;
+    root.querySelectorAll('[data-operation]').forEach((item) => item.classList.toggle('active', item.dataset.operation === current.operation));
+    renderDynamic();
+  }));
+}
+
+function dateFlow(from, action, to, parts = '') {
+  return `<div class="date-flow">
+    <div class="date-box"><div class="date-label">Исходное значение</div><div class="date-value">${from}</div></div>
+    <div class="date-arrow">→<span>${action}</span></div>
+    <div class="date-box result"><div class="date-label">Результат</div><div class="date-value">${to}</div></div>
+  </div>${parts}`;
+}
+
+function renderAdd() {
+  const current = state.add;
+  const from = parseDate(current.date);
+  const result = addUnit(from, current.amount, current.unit);
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> <span class="fn">date_add</span>(<span class="value">'${current.unit}'</span>, <span class="number">${current.amount}</span>, <span class="kw">DATE</span> <span class="value">'${current.date}'</span>) <span class="kw">AS</span> result`;
+  document.getElementById('visual').innerHTML = dateFlow(current.date, `${current.amount >= 0 ? '+' : ''}${current.amount} ${current.unit}`, formatDate(result));
+  document.getElementById('result-summary').innerHTML = `Дата сдвинулась на <b>${current.amount} ${current.unit}</b>. Отрицательное значение используется для вычитания.`;
+}
+
+function renderDiff() {
+  const current = state.diff;
+  const start = parseTimestamp(current.start);
+  const end = parseTimestamp(current.end);
+  const milliseconds = end - start;
+  const divisor = current.unit === 'hour' ? 3600000 : current.unit === 'day' ? 86400000 : 604800000;
+  const result = Math.trunc(milliseconds / divisor);
+  const startSql = current.start.replace('T', ' ') + ':00';
+  const endSql = current.end.replace('T', ' ') + ':00';
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> <span class="fn">date_diff</span>(\n  <span class="value">'${current.unit}'</span>,\n  <span class="kw">TIMESTAMP</span> <span class="value">'${startSql}'</span>,\n  <span class="kw">TIMESTAMP</span> <span class="value">'${endSql}'</span>\n) <span class="kw">AS</span> result`;
+  document.getElementById('visual').innerHTML = dateFlow(startSql, `разница в ${current.unit}`, endSql);
+  document.getElementById('result-summary').innerHTML = `<b>${result}</b> — целое количество единиц ${current.unit} от начала до конца.`;
+}
+
+function renderTrunc() {
+  const current = state.trunc;
+  const source = parseTimestamp(current.timestamp);
+  const result = truncate(source, current.unit);
+  const sourceSql = current.timestamp.replace('T', ' ') + ':00';
+  const sourceParts = [source.getUTCFullYear(), pad(source.getUTCMonth() + 1), pad(source.getUTCDate()), pad(source.getUTCHours()), pad(source.getUTCMinutes()), pad(source.getUTCSeconds())];
+  const resultParts = [result.getUTCFullYear(), pad(result.getUTCMonth() + 1), pad(result.getUTCDate()), pad(result.getUTCHours()), pad(result.getUTCMinutes()), pad(result.getUTCSeconds())];
+  const labels = ['year', 'month', 'day', 'hour', 'minute', 'second'];
+  const parts = `<div class="parts">${labels.map((label, index) => `<span class="part ${sourceParts[index] === resultParts[index] ? 'kept' : 'reset'}">${label}: ${sourceParts[index]} → ${resultParts[index]}</span>`).join('')}</div>`;
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> <span class="fn">date_trunc</span>(<span class="value">'${current.unit}'</span>, <span class="kw">TIMESTAMP</span> <span class="value">'${sourceSql}'</span>) <span class="kw">AS</span> result`;
+  document.getElementById('visual').innerHTML = dateFlow(sourceSql, `начало ${current.unit}`, formatTimestamp(result), parts);
+  document.getElementById('result-summary').innerHTML = `Компоненты меньше <b>${current.unit}</b> сброшены до начала выбранного периода.`;
+}
+
+function renderInterval() {
+  const current = state.interval;
+  const source = parseDate(current.date);
+  const signedAmount = current.operation === '+' ? current.amount : -current.amount;
+  const result = addUnit(source, signedAmount, current.unit.toLowerCase());
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT DATE</span> <span class="value">'${current.date}'</span> ${current.operation} <span class="kw">INTERVAL</span> <span class="value">'${current.amount}'</span> <span class="kw">${current.unit}</span> <span class="kw">AS</span> result`;
+  document.getElementById('visual').innerHTML = dateFlow(current.date, `${current.operation} INTERVAL '${current.amount}' ${current.unit}`, formatDate(result));
+  document.getElementById('result-summary').innerHTML = `<b>INTERVAL '${current.amount}' ${current.unit}</b> — значение длительности, которое участвует в арифметике дат.`;
+}
+
+function renderDynamic() {
+  const amountValue = document.getElementById('amount-value');
+  if (amountValue) amountValue.textContent = state[state.mode].amount;
+  document.getElementById('hint').innerHTML = hints[state.mode];
+  if (state.mode === 'add') renderAdd();
+  else if (state.mode === 'diff') renderDiff();
+  else if (state.mode === 'trunc') renderTrunc();
+  else renderInterval();
+}
+
+function render() {
+  document.querySelectorAll('[data-mode]').forEach((button) => button.classList.toggle('active', button.dataset.mode === state.mode));
+  renderControls();
+  renderDynamic();
+}
+
+document.getElementById('tabs').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-mode]');
+  if (!button) return;
+  state.mode = button.dataset.mode;
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

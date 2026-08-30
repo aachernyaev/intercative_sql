@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SELECT, FROM и алиасы</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 20px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .concepts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .concept {
+    padding: 12px 14px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #686762;
+  }
+  .concept code { display: block; margin-bottom: 4px; color: #185fa5; font-size: 14px; font-weight: 700; }
+  .controls {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .control {
+    padding: 14px;
+    border: 1px solid #e5e4de;
+    border-radius: 11px;
+    background: #fafaf8;
+  }
+  .control-title { margin-bottom: 9px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  button { font: inherit; }
+  .chip {
+    padding: 6px 10px;
+    border: 1px solid #d4d2ca;
+    border-radius: 8px;
+    background: #fff;
+    color: #5d5c57;
+    font-family: "Courier New", monospace;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .chip:hover { border-color: #85b7eb; }
+  .chip.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; font-weight: 700; }
+  .toggles { display: flex; flex-direction: column; gap: 9px; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: #5f5e5a; }
+  .switch {
+    position: relative;
+    width: 42px;
+    height: 23px;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 999px;
+    background: #d3d1c7;
+    cursor: pointer;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.18);
+    transition: .18s;
+  }
+  .switch.on { background: #185fa5; }
+  .switch.on::after { left: 22px; }
+  .hint {
+    min-height: 46px;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .sql {
+    margin-bottom: 18px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font-family: "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.75;
+    white-space: pre;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .name { color: #cba6f7; }
+  .alias { color: #a6e3a1; }
+  .tables {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .table-title { display: flex; justify-content: space-between; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .table-note { color: #aaa89f; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font-family: "Courier New", monospace; font-size: 11px; }
+  tr:last-child td { border-bottom: 0; }
+  th.selected, td.selected { background: #edf5fc; }
+  th.not-selected, td.not-selected { color: #bbb9b2; opacity: .52; }
+  .empty { padding: 30px 14px; color: #999790; text-align: center; font-size: 12px; }
+  .summary { margin-top: 16px; color: #6f6e69; font-size: 12px; line-height: 1.5; }
+  .summary b { color: #2c2c2a; }
+  @media (max-width: 720px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .concepts, .controls, .tables { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>SELECT, FROM и алиасы</h1>
+  <p class="intro">Соберём самый простой запрос: выберем нужные столбцы, укажем таблицу-источник и при желании дадим объектам более удобные имена.</p>
+
+  <div class="concepts">
+    <div class="concept"><code>SELECT</code>какие столбцы вернуть</div>
+    <div class="concept"><code>FROM</code>из какой таблицы взять строки</div>
+    <div class="concept"><code>AS</code>как временно назвать столбец или таблицу</div>
+  </div>
+
+  <div class="controls">
+    <section class="control">
+      <div class="control-title">Столбцы результата</div>
+      <div id="column-chips" class="chips"></div>
+    </section>
+    <section class="control">
+      <div class="control-title">Запись запроса</div>
+      <div class="toggles">
+        <div class="toggle-row"><span>Все столбцы через <code>*</code></span><button id="star-toggle" class="switch" type="button" aria-label="Переключить SELECT *"></button></div>
+        <div class="toggle-row"><span>Алиас таблицы <code>AS l</code></span><button id="table-alias-toggle" class="switch" type="button" aria-label="Переключить алиас таблицы"></button></div>
+        <div class="toggle-row"><span>Алиасы столбцов</span><button id="column-alias-toggle" class="switch" type="button" aria-label="Переключить алиасы столбцов"></button></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="hint" class="hint"></div>
+  <div id="sql" class="sql"></div>
+
+  <div class="tables">
+    <section>
+      <div class="table-title"><span>Источник: listings</span><span class="table-note">FROM</span></div>
+      <div class="table-wrap"><table><thead id="source-head"></thead><tbody id="source-body"></tbody></table></div>
+    </section>
+    <section>
+      <div class="table-title"><span>Результат запроса</span><span id="result-note" class="table-note"></span></div>
+      <div id="result-wrap" class="table-wrap"></div>
+    </section>
+  </div>
+
+  <p class="summary"><b>Важно:</b> алиас действует только внутри запроса. Он меняет имя в результате или сокращает запись, но не переименовывает столбец в исходной таблице.</p>
+</main>
+
+<script>
+const columns = [
+  { key: 'item_id', alias: 'listing_id' },
+  { key: 'title', alias: 'listing_title' },
+  { key: 'city', alias: 'listing_city' },
+  { key: 'price', alias: 'price_rub' },
+  { key: 'views', alias: 'view_count' },
+];
+
+const rows = [
+  { item_id: 101, title: 'Городской велосипед', city: 'Москва', price: 24000, views: 318 },
+  { item_id: 102, title: 'Рабочий стол', city: 'Казань', price: 8500, views: 74 },
+  { item_id: 103, title: 'Кофемашина', city: 'Санкт-Петербург', price: 17900, views: 156 },
+  { item_id: 104, title: 'Настольная лампа', city: 'Москва', price: 3200, views: 91 },
+];
+
+let selected = new Set(['item_id', 'title', 'price']);
+let useStar = false;
+let useTableAlias = false;
+let useColumnAliases = false;
+
+const format = (value) => typeof value === 'number' ? value.toLocaleString('ru-RU') : value;
+
+function visibleColumns() {
+  return useStar ? columns : columns.filter((column) => selected.has(column.key));
+}
+
+function renderChips() {
+  document.getElementById('column-chips').innerHTML = columns.map((column) => `
+    <button class="chip ${selected.has(column.key) && !useStar ? 'active' : ''}" type="button" data-column="${column.key}">${column.key}</button>
+  `).join('');
+}
+
+function renderSql() {
+  const current = visibleColumns();
+  const prefix = useTableAlias ? 'l.' : '';
+  let selectExpression;
+
+  if (useStar) {
+    selectExpression = useTableAlias ? 'l.*' : '*';
+  } else if (current.length === 0) {
+    selectExpression = '<span style="color:#f38ba8">-- выбери хотя бы один столбец</span>';
+  } else {
+    selectExpression = current.map((column) => {
+      const source = `<span class="name">${prefix}${column.key}</span>`;
+      return useColumnAliases
+        ? `${source} <span class="kw">AS</span> <span class="alias">${column.alias}</span>`
+        : source;
+    }).join(',\n       ');
+  }
+
+  const from = useTableAlias
+    ? `<span class="name">listings</span> <span class="kw">AS</span> <span class="alias">l</span>`
+    : '<span class="name">listings</span>';
+
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> ${selectExpression}\n<span class="kw">FROM</span>   ${from}`;
+}
+
+function renderSource() {
+  const active = new Set(visibleColumns().map((column) => column.key));
+  document.getElementById('source-head').innerHTML = `<tr>${columns.map((column) =>
+    `<th class="${active.has(column.key) ? 'selected' : 'not-selected'}">${column.key}</th>`
+  ).join('')}</tr>`;
+
+  document.getElementById('source-body').innerHTML = rows.map((row) => `<tr>${columns.map((column) =>
+    `<td class="${active.has(column.key) ? 'selected' : 'not-selected'}">${format(row[column.key])}</td>`
+  ).join('')}</tr>`).join('');
+}
+
+function renderResult() {
+  const current = visibleColumns();
+  const wrap = document.getElementById('result-wrap');
+  document.getElementById('result-note').textContent = `${current.length} из ${columns.length} столбцов`;
+
+  if (current.length === 0) {
+    wrap.innerHTML = '<div class="empty">Выбери столбцы для SELECT</div>';
+    return;
+  }
+
+  wrap.innerHTML = `<table>
+    <thead><tr>${current.map((column) => `<th>${useColumnAliases && !useStar ? column.alias : column.key}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map((row) => `<tr>${current.map((column) => `<td>${format(row[column.key])}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function renderHint() {
+  let text = '<b>SELECT</b> оставляет в результате только выбранные столбцы. <b>FROM listings</b> указывает исходную таблицу.';
+  if (useStar) text = '<b>SELECT *</b> возвращает все столбцы источника. Это удобно для знакомства с таблицей, но в рабочих запросах обычно лучше перечислять нужные поля явно.';
+  if (useTableAlias) text += ' Алиас <b>l</b> позволяет обращаться к ним короче: <b>l.item_id</b>.';
+  if (useColumnAliases && !useStar) text += ' Алиасы после <b>AS</b> стали заголовками результата; сами значения не изменились.';
+  document.getElementById('hint').innerHTML = text;
+}
+
+function syncSwitch(id, enabled) {
+  const element = document.getElementById(id);
+  element.classList.toggle('on', enabled);
+  element.setAttribute('aria-pressed', String(enabled));
+}
+
+function render() {
+  renderChips();
+  renderSql();
+  renderSource();
+  renderResult();
+  renderHint();
+  syncSwitch('star-toggle', useStar);
+  syncSwitch('table-alias-toggle', useTableAlias);
+  syncSwitch('column-alias-toggle', useColumnAliases);
+}
+
+document.getElementById('column-chips').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-column]');
+  if (!button) return;
+  useStar = false;
+  selected.has(button.dataset.column) ? selected.delete(button.dataset.column) : selected.add(button.dataset.column);
+  render();
+});
+
+document.getElementById('star-toggle').addEventListener('click', () => { useStar = !useStar; render(); });
+document.getElementById('table-alias-toggle').addEventListener('click', () => { useTableAlias = !useTableAlias; render(); });
+document.getElementById('column-alias-toggle').addEventListener('click', () => { useColumnAliases = !useColumnAliases; render(); });
+
+render();
+</script>
+</body>
+</html>

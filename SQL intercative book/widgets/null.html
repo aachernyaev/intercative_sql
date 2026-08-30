@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NULL и IS NULL</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .truth-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 9px;
+    margin-bottom: 16px;
+  }
+  .truth-card {
+    padding: 10px 12px;
+    border: 1px solid #e5e4de;
+    border-radius: 9px;
+    background: #fafaf8;
+    color: #77756f;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+  .truth-card b { display: block; margin-bottom: 3px; font: 750 12px "Courier New", monospace; }
+  .truth-card.true b { color: #3b6d11; }
+  .truth-card.false b { color: #a33a3a; }
+  .truth-card.unknown b { color: #8a5a08; }
+  .controls {
+    display: grid;
+    grid-template-columns: .65fr 1.35fr;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .control {
+    padding: 13px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+  }
+  .control-title { margin-bottom: 9px; color: #85837c; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  select {
+    width: 100%;
+    padding: 8px 9px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #373734;
+    font: 12px "Courier New", monospace;
+  }
+  .predicates { display: flex; flex-wrap: wrap; gap: 7px; }
+  .predicate {
+    padding: 7px 10px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 11px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .predicate:hover { border-color: #85b7eb; }
+  .predicate.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .predicate.wrong.active { border-color: #ef9f27; background: #faeeda; color: #633806; }
+  .hint {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .hint.warning { border-left-color: #ef9f27; background: #fff8e7; color: #725100; }
+  .sql {
+    margin-bottom: 18px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 13px/1.75 "Courier New", monospace;
+    white-space: pre;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .column { color: #cba6f7; }
+  .null { color: #f9e2af; font-weight: 700; }
+  .tables { display: grid; grid-template-columns: 1.2fr .8fr; gap: 16px; }
+  .table-title { display: flex; justify-content: space-between; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .count { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 8px 9px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 11px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .tested { background: #edf5fc !important; font-weight: 700; }
+  .row-true td { background: #eaf3de; color: #27500a; }
+  .row-false td { opacity: .34; }
+  .row-unknown td { background: #fff8e7; color: #725100; }
+  .null-value { display: inline-block; padding: 1px 6px; border-radius: 4px; background: #faeeda; color: #633806; font: italic 700 10px "Courier New", monospace; }
+  .truth-badge { display: inline-block; min-width: 66px; padding: 3px 7px; border-radius: 6px; font: 700 10px "Courier New", monospace; text-align: center; }
+  .truth-true { background: #eaf3de; color: #3b6d11; }
+  .truth-false { background: #fcebeb; color: #a33a3a; }
+  .truth-unknown { background: #faeeda; color: #8a5a08; }
+  .empty { padding: 36px 12px; color: #999790; font-size: 12px; text-align: center; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 720px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .controls, .tables { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>NULL и IS NULL</h1>
+  <p class="intro"><code>NULL</code> означает, что значение отсутствует или неизвестно. Это не число, не пустая строка и не отдельный тип данных.</p>
+
+  <div class="truth-row">
+    <div class="truth-card true"><b>TRUE</b>строка проходит WHERE</div>
+    <div class="truth-card false"><b>FALSE</b>строка отбрасывается</div>
+    <div class="truth-card unknown"><b>UNKNOWN</b>строка тоже отбрасывается</div>
+  </div>
+
+  <div class="controls">
+    <section class="control">
+      <div class="control-title">Проверяем столбец</div>
+      <select id="field-select">
+        <option value="city">city</option>
+        <option value="views">views</option>
+        <option value="seller_id">seller_id</option>
+      </select>
+    </section>
+    <section class="control">
+      <div class="control-title">Условие WHERE</div>
+      <div class="predicates">
+        <button class="predicate wrong" type="button" data-predicate="equals">= NULL</button>
+        <button class="predicate wrong" type="button" data-predicate="not-equals">&lt;&gt; NULL</button>
+        <button class="predicate active" type="button" data-predicate="is-null">IS NULL</button>
+        <button class="predicate" type="button" data-predicate="is-not-null">IS NOT NULL</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="hint" class="hint"></div>
+  <div id="sql" class="sql"></div>
+
+  <div class="tables">
+    <section>
+      <div class="table-title"><span>Проверка каждой строки</span><span class="count">WHERE оставляет только TRUE</span></div>
+      <div class="table-wrap"><table><thead id="source-head"></thead><tbody id="source-body"></tbody></table></div>
+    </section>
+    <section>
+      <div class="table-title"><span>Результат</span><span id="result-count" class="count"></span></div>
+      <div id="result-wrap" class="table-wrap"></div>
+    </section>
+  </div>
+
+  <p class="note"><b>Правило:</b> для проверки отсутствующего значения используй <code>IS NULL</code> или <code>IS NOT NULL</code>. Обычные сравнения с NULL не дают TRUE или FALSE.</p>
+</main>
+
+<script>
+const rows = [
+  { item_id: 101, city: 'Москва', views: 318, seller_id: 'u1' },
+  { item_id: 102, city: null, views: 74, seller_id: 'u2' },
+  { item_id: 103, city: 'Казань', views: null, seller_id: 'u3' },
+  { item_id: 104, city: 'Москва', views: 91, seller_id: null },
+  { item_id: 105, city: null, views: null, seller_id: 'u4' },
+  { item_id: 106, city: 'Самара', views: 203, seller_id: null },
+];
+
+const columns = ['item_id', 'city', 'views', 'seller_id'];
+const predicateSql = {
+  equals: '= NULL',
+  'not-equals': '<> NULL',
+  'is-null': 'IS NULL',
+  'is-not-null': 'IS NOT NULL',
+};
+
+let field = 'city';
+let predicate = 'is-null';
+
+function evaluate(value) {
+  if (predicate === 'equals' || predicate === 'not-equals') return 'UNKNOWN';
+  if (predicate === 'is-null') return value === null ? 'TRUE' : 'FALSE';
+  return value === null ? 'FALSE' : 'TRUE';
+}
+
+function display(value) {
+  return value === null ? '<span class="null-value">NULL</span>' : value;
+}
+
+function renderSql() {
+  let expression;
+  if (predicate === 'equals') expression = '= <span class="null">NULL</span>';
+  else if (predicate === 'not-equals') expression = '&lt;&gt; <span class="null">NULL</span>';
+  else if (predicate === 'is-null') expression = '<span class="kw">IS</span> <span class="null">NULL</span>';
+  else expression = '<span class="kw">IS NOT</span> <span class="null">NULL</span>';
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> item_id, city, views, seller_id\n<span class="kw">FROM</span>   listings\n<span class="kw">WHERE</span>  <span class="column">${field}</span> ${expression}`;
+}
+
+function renderSource() {
+  document.getElementById('source-head').innerHTML = `<tr>${columns.map((column) => `<th class="${column === field ? 'tested' : ''}">${column}</th>`).join('')}<th>результат условия</th></tr>`;
+  document.getElementById('source-body').innerHTML = rows.map((row) => {
+    const truth = evaluate(row[field]);
+    return `<tr class="row-${truth.toLowerCase()}">${columns.map((column) => `<td class="${column === field ? 'tested' : ''}">${display(row[column])}</td>`).join('')}<td><span class="truth-badge truth-${truth.toLowerCase()}">${truth}</span></td></tr>`;
+  }).join('');
+}
+
+function renderResult() {
+  const result = rows.filter((row) => evaluate(row[field]) === 'TRUE');
+  document.getElementById('result-count').textContent = `${result.length} из ${rows.length} строк`;
+  document.getElementById('result-wrap').innerHTML = result.length === 0
+    ? '<div class="empty">Ни одна строка не получила TRUE</div>'
+    : `<table><thead><tr>${columns.map((column) => `<th>${column}</th>`).join('')}</tr></thead><tbody>${result.map((row) => `<tr>${columns.map((column) => `<td>${display(row[column])}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+function renderHint() {
+  const hint = document.getElementById('hint');
+  const incorrectComparison = predicate === 'equals' || predicate === 'not-equals';
+  hint.classList.toggle('warning', incorrectComparison);
+  if (incorrectComparison) {
+    hint.innerHTML = `<b>${field} ${predicateSql[predicate]}</b> возвращает UNKNOWN для каждой строки — даже когда значение само равно NULL. Поэтому WHERE не пропускает ни одной строки.`;
+  } else if (predicate === 'is-null') {
+    hint.innerHTML = `<b>${field} IS NULL</b> возвращает TRUE только там, где значение отсутствует.`;
+  } else {
+    hint.innerHTML = `<b>${field} IS NOT NULL</b> возвращает TRUE там, где известно обычное значение.`;
+  }
+}
+
+function render() {
+  document.querySelectorAll('[data-predicate]').forEach((button) => button.classList.toggle('active', button.dataset.predicate === predicate));
+  renderSql();
+  renderSource();
+  renderResult();
+  renderHint();
+}
+
+document.getElementById('field-select').addEventListener('change', (event) => { field = event.target.value; render(); });
+document.querySelector('.predicates').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-predicate]');
+  if (!button) return;
+  predicate = button.dataset.predicate;
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

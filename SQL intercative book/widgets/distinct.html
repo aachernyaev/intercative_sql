@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DISTINCT</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .controls {
+    display: grid;
+    grid-template-columns: 1.5fr .7fr;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .control {
+    padding: 13px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+  }
+  .control-title { margin-bottom: 9px; color: #85837c; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  button { font: inherit; }
+  .chip {
+    padding: 7px 10px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 12px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .chip:hover { border-color: #85b7eb; }
+  .chip.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; font-weight: 700; }
+  .toggle-row { display: flex; min-height: 32px; align-items: center; justify-content: space-between; gap: 12px; color: #5f5e5a; font-size: 12px; }
+  .switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 999px;
+    background: #d3d1c7;
+    cursor: pointer;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.18);
+    transition: .18s;
+  }
+  .switch.on { background: #185fa5; }
+  .switch.on::after { left: 23px; }
+  .hint {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .sql {
+    margin-bottom: 16px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 13px/1.75 "Courier New", monospace;
+    white-space: pre;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .column { color: #cba6f7; }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat {
+    padding: 10px 12px;
+    border: 1px solid #e5e4de;
+    border-radius: 9px;
+    background: #fafaf8;
+    color: #77756f;
+    font-size: 12px;
+    text-align: center;
+  }
+  .stat b { display: block; margin-bottom: 2px; color: #2c2c2a; font-size: 18px; }
+  .stat-arrow { color: #aaa89f; }
+  .tables { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; }
+  .table-title { display: flex; justify-content: space-between; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .count { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 8px 9px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 11px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .selected { background: #edf5fc !important; color: #0c447c; font-weight: 700; }
+  .not-selected { color: #bbb9b2; opacity: .5; }
+  .duplicate td.selected { background: #faeeda !important; color: #633806; }
+  .unique-row td { background: #eaf3de; color: #27500a; }
+  .duplicate-mark { display: inline-block; margin-left: 5px; padding: 1px 5px; border-radius: 4px; background: #f4c96b; color: #633806; font-size: 9px; font-weight: 700; }
+  .empty { padding: 34px 12px; color: #999790; font-size: 12px; text-align: center; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 720px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .controls, .tables { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>DISTINCT</h1>
+  <p class="intro"><code>DISTINCT</code> убирает повторяющиеся строки из результата. Если выбрано несколько столбцов, SQL проверяет уникальность всей их комбинации.</p>
+
+  <div class="controls">
+    <section class="control">
+      <div class="control-title">Столбцы SELECT</div>
+      <div id="column-chips" class="chips"></div>
+    </section>
+    <section class="control">
+      <div class="control-title">Уникальные строки</div>
+      <div class="toggle-row"><span>Включить <code>DISTINCT</code></span><button id="distinct-toggle" class="switch on" type="button" aria-label="Переключить DISTINCT" aria-pressed="true"></button></div>
+    </section>
+  </div>
+
+  <div id="hint" class="hint"></div>
+  <div id="sql" class="sql"></div>
+
+  <div class="stats">
+    <div class="stat"><b id="before-count"></b>строк после SELECT</div>
+    <div class="stat-arrow">→ DISTINCT →</div>
+    <div class="stat"><b id="after-count"></b>строк в результате</div>
+  </div>
+
+  <div class="tables">
+    <section>
+      <div class="table-title"><span>Исходные данные</span><span class="count">повторы выделены жёлтым</span></div>
+      <div class="table-wrap"><table><thead id="source-head"></thead><tbody id="source-body"></tbody></table></div>
+    </section>
+    <section>
+      <div class="table-title"><span>Результат</span><span id="result-key" class="count"></span></div>
+      <div id="result-wrap" class="table-wrap"></div>
+    </section>
+  </div>
+
+  <p class="note"><b>Важно:</b> <code>DISTINCT</code> не означает «уникальность первого столбца». Он сравнивает все выражения, перечисленные после <code>SELECT DISTINCT</code>.</p>
+</main>
+
+<script>
+const rows = [
+  { user_id: 'u1', city: 'Москва', category: 'Электроника', device: 'mobile' },
+  { user_id: 'u2', city: 'Москва', category: 'Электроника', device: 'desktop' },
+  { user_id: 'u1', city: 'Москва', category: 'Мебель', device: 'mobile' },
+  { user_id: 'u3', city: 'Казань', category: 'Электроника', device: 'mobile' },
+  { user_id: 'u4', city: 'Казань', category: 'Мебель', device: 'desktop' },
+  { user_id: 'u3', city: 'Казань', category: 'Электроника', device: 'mobile' },
+  { user_id: 'u5', city: 'Москва', category: 'Мебель', device: 'mobile' },
+  { user_id: 'u6', city: 'Самара', category: 'Одежда', device: 'mobile' },
+  { user_id: 'u6', city: 'Самара', category: 'Одежда', device: 'desktop' },
+];
+
+const columns = ['user_id', 'city', 'category', 'device'];
+let selected = new Set(['city']);
+let useDistinct = true;
+
+function selectedColumns() {
+  return columns.filter((column) => selected.has(column));
+}
+
+function keyFor(row, activeColumns) {
+  return activeColumns.map((column) => String(row[column])).join('\u001f');
+}
+
+function keyCounts(activeColumns) {
+  const counts = new Map();
+  rows.forEach((row) => {
+    const key = keyFor(row, activeColumns);
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+  return counts;
+}
+
+function projectedRows() {
+  const activeColumns = selectedColumns();
+  const projected = rows.map((row) => Object.fromEntries(activeColumns.map((column) => [column, row[column]])));
+  if (!useDistinct) return projected;
+  const seen = new Set();
+  return projected.filter((row) => {
+    const key = keyFor(row, activeColumns);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function renderChips() {
+  document.getElementById('column-chips').innerHTML = columns.map((column) =>
+    `<button class="chip ${selected.has(column) ? 'active' : ''}" type="button" data-column="${column}">${column}</button>`
+  ).join('');
+}
+
+function renderSql() {
+  const activeColumns = selectedColumns();
+  const expression = activeColumns.length
+    ? activeColumns.map((column) => `<span class="column">${column}</span>`).join(', ')
+    : '<span style="color:#f38ba8">-- выбери столбец</span>';
+  const distinct = useDistinct ? '<span class="kw">DISTINCT</span> ' : '';
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> ${distinct}${expression}\n<span class="kw">FROM</span>   events`;
+}
+
+function renderSource() {
+  const activeColumns = selectedColumns();
+  const counts = keyCounts(activeColumns);
+  document.getElementById('source-head').innerHTML = `<tr>${columns.map((column) => `<th class="${selected.has(column) ? 'selected' : 'not-selected'}">${column}</th>`).join('')}</tr>`;
+  document.getElementById('source-body').innerHTML = rows.map((row) => {
+    const duplicate = activeColumns.length > 0 && counts.get(keyFor(row, activeColumns)) > 1;
+    return `<tr class="${duplicate ? 'duplicate' : ''}">${columns.map((column) => `<td class="${selected.has(column) ? 'selected' : 'not-selected'}">${row[column]}${selected.has(column) && duplicate ? '<span class="duplicate-mark">повтор</span>' : ''}</td>`).join('')}</tr>`;
+  }).join('');
+}
+
+function renderResult() {
+  const activeColumns = selectedColumns();
+  const result = activeColumns.length ? projectedRows() : [];
+  document.getElementById('before-count').textContent = activeColumns.length ? rows.length : 0;
+  document.getElementById('after-count').textContent = result.length;
+  document.getElementById('result-key').textContent = activeColumns.length ? `ключ: ${activeColumns.join(' + ')}` : '';
+
+  if (!activeColumns.length) {
+    document.getElementById('result-wrap').innerHTML = '<div class="empty">Выбери хотя бы один столбец</div>';
+    return;
+  }
+
+  document.getElementById('result-wrap').innerHTML = `<table><thead><tr>${activeColumns.map((column) => `<th>${column}</th>`).join('')}</tr></thead><tbody>${result.map((row) => `<tr class="${useDistinct ? 'unique-row' : ''}">${activeColumns.map((column) => `<td>${row[column]}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+function renderHint() {
+  const activeColumns = selectedColumns();
+  if (!activeColumns.length) {
+    document.getElementById('hint').innerHTML = 'Сначала выбери столбцы, по которым SQL будет формировать строки результата.';
+    return;
+  }
+  const key = activeColumns.map((column) => `<b>${column}</b>`).join(' + ');
+  document.getElementById('hint').innerHTML = useDistinct
+    ? `SQL сравнивает комбинацию ${key}. Если такая строка уже встречалась, её повтор не попадает в результат.`
+    : `DISTINCT выключен: SELECT возвращает проекцию ${key} для каждой исходной строки, поэтому повторы сохраняются.`;
+}
+
+function syncToggle() {
+  const toggle = document.getElementById('distinct-toggle');
+  toggle.classList.toggle('on', useDistinct);
+  toggle.setAttribute('aria-pressed', String(useDistinct));
+}
+
+function render() {
+  renderChips();
+  renderSql();
+  renderSource();
+  renderResult();
+  renderHint();
+  syncToggle();
+}
+
+document.getElementById('column-chips').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-column]');
+  if (!button) return;
+  selected.has(button.dataset.column) ? selected.delete(button.dataset.column) : selected.add(button.dataset.column);
+  render();
+});
+document.getElementById('distinct-toggle').addEventListener('click', () => { useDistinct = !useDistinct; render(); });
+
+render();
+</script>
+</body>
+</html>

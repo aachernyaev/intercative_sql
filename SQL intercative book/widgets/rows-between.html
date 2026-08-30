@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Границы окна: ROWS BETWEEN</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  .intro code, .note code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .controls { display: grid; grid-template-columns: .75fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .control { padding: 12px; border: 1px solid #e5e4de; border-radius: 9px; background: #fafaf8; }
+  .control-title { margin-bottom: 8px; color: #85837c; font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .toggle { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 3px; border-radius: 8px; background: #ecebe6; }
+  .toggle button {
+    padding: 7px 8px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #77756f;
+    font: 700 10px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .toggle button.active { background: #fff; color: #0c447c; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  select {
+    width: 100%;
+    padding: 8px 9px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #373734;
+    font: 11px "Courier New", monospace;
+  }
+  .sql {
+    margin-bottom: 16px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 12px/1.7 "Courier New", monospace;
+    white-space: pre;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .column { color: #f9e2af; }
+  .frame-sql { padding: 2px 4px; border-radius: 4px; background: rgba(166,227,161,.1); }
+  .section-title { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .section-meta { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .timeline-wrap { margin-bottom: 16px; padding: 13px; border: 1px solid #e5e4de; border-radius: 11px; background: #fafaf8; overflow-x: auto; }
+  .timeline { display: grid; grid-template-columns: repeat(8, minmax(78px, 1fr)); gap: 6px; min-width: 690px; }
+  .day {
+    position: relative;
+    padding: 10px 7px 9px;
+    border: 1px solid #e5e4de;
+    border-radius: 8px;
+    background: #fff;
+    text-align: center;
+    cursor: pointer;
+    transition: opacity .15s, border-color .15s;
+  }
+  .day.outside { opacity: .3; }
+  .day.inside { border-color: #b5d88a; background: #f1f8e9; }
+  .day.current { border: 2px solid #185fa5; padding: 9px 6px 8px; background: #e6f1fb; color: #0c447c; }
+  .day.boundary-start::before, .day.boundary-end::after {
+    position: absolute;
+    top: -8px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    background: #639922;
+    color: #fff;
+    font: 700 7px "Courier New", monospace;
+  }
+  .day.boundary-start::before { content: "START"; left: 3px; }
+  .day.boundary-end::after { content: "END"; right: 3px; }
+  .day-date { margin-bottom: 4px; color: #85837c; font: 9px "Courier New", monospace; }
+  .day-value { font-size: 16px; font-weight: 800; }
+  .day-position { margin-top: 4px; color: #999790; font-size: 8px; }
+  .layout { display: grid; grid-template-columns: 1.15fr .85fr; gap: 14px; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  th, td { padding: 8px 9px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 10px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .result-row { cursor: pointer; }
+  .result-row:hover td { background: #f3f8fd; }
+  .result-row.selected td { background: #e6f1fb; color: #0c447c; font-weight: 700; }
+  .result-row.selected td:first-child { box-shadow: inset 2px 0 #185fa5; }
+  .window-value { color: #5b2d8e; font-weight: 800; }
+  .explain { padding: 15px; border: 1px solid #b5d88a; border-radius: 10px; background: #f5faef; }
+  .explain-title { margin-bottom: 5px; color: #3b6d11; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .05em; }
+  .current-date { margin-bottom: 12px; font-size: 18px; font-weight: 800; }
+  .formula { margin: 10px 0; padding: 10px; overflow-x: auto; border-radius: 8px; background: #fff; color: #5b2d8e; font: 700 12px/1.55 "Courier New", monospace; }
+  .result-value { font-size: 24px; font-weight: 850; color: #3b6d11; }
+  .explain-text { margin-top: 10px; color: #5f5e5a; font-size: 12px; line-height: 1.55; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; color: #77756f; font-size: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .swatch { width: 14px; height: 14px; border: 1px solid #d3d1c7; border-radius: 4px; background: #fff; }
+  .swatch.inside { border-color: #b5d88a; background: #f1f8e9; }
+  .swatch.current { border: 2px solid #185fa5; background: #e6f1fb; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .note b { color: #343431; }
+  @media (max-width: 780px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .controls, .layout { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Границы окна: ROWS BETWEEN</h1>
+  <p class="intro"><code>ROWS BETWEEN</code> задаёт рамку относительно текущей позиции: сколько строк взять до неё и сколько после. Агрегат пересчитывается в своей рамке для каждой строки.</p>
+
+  <section class="controls">
+    <div class="control">
+      <div class="control-title">Функция</div>
+      <div id="function-toggle" class="toggle">
+        <button class="active" type="button" data-function="sum">SUM</button>
+        <button type="button" data-function="avg">AVG</button>
+        <button type="button" data-function="count">COUNT</button>
+      </div>
+    </div>
+    <label class="control">
+      <div class="control-title">Начало рамки</div>
+      <select id="start-select">
+        <option value="unbounded">UNBOUNDED PRECEDING</option>
+        <option value="3">3 PRECEDING</option>
+        <option value="2" selected>2 PRECEDING</option>
+        <option value="1">1 PRECEDING</option>
+        <option value="current">CURRENT ROW</option>
+      </select>
+    </label>
+    <label class="control">
+      <div class="control-title">Конец рамки</div>
+      <select id="end-select">
+        <option value="current" selected>CURRENT ROW</option>
+        <option value="1">1 FOLLOWING</option>
+        <option value="2">2 FOLLOWING</option>
+        <option value="3">3 FOLLOWING</option>
+        <option value="unbounded">UNBOUNDED FOLLOWING</option>
+      </select>
+    </label>
+  </section>
+
+  <div id="sql" class="sql"></div>
+
+  <div class="section-title"><span>Рамка выбранной строки</span><span class="section-meta">нажми на день</span></div>
+  <section class="timeline-wrap">
+    <div id="timeline" class="timeline"></div>
+    <div class="legend">
+      <span class="legend-item"><i class="swatch inside"></i> входит в рамку</span>
+      <span class="legend-item"><i class="swatch current"></i> текущая строка</span>
+      <span class="legend-item"><i class="swatch"></i> вне рамки</span>
+    </div>
+  </section>
+
+  <section class="layout">
+    <div>
+      <div class="section-title"><span>Результат для всех строк</span><span class="section-meta">у каждой своя рамка</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>event_date</th><th>revenue</th><th>строк в рамке</th><th id="result-header">window_sum</th></tr></thead>
+        <tbody id="result-body"></tbody>
+      </table></div>
+    </div>
+    <aside id="explain" class="explain"></aside>
+  </section>
+
+  <p class="note"><b>ROWS считает позиции, а не расстояние между значениями.</b> Поэтому <code>2 PRECEDING</code> означает две предыдущие строки после оконного <code>ORDER BY</code>, а не два предыдущих календарных дня.</p>
+</main>
+
+<script>
+const data = [
+  { event_date: '2026-08-01', revenue: 120 },
+  { event_date: '2026-08-02', revenue: 80 },
+  { event_date: '2026-08-04', revenue: 150 },
+  { event_date: '2026-08-05', revenue: 60 },
+  { event_date: '2026-08-08', revenue: 200 },
+  { event_date: '2026-08-09', revenue: 110 },
+  { event_date: '2026-08-12', revenue: 90 },
+  { event_date: '2026-08-13', revenue: 170 },
+];
+
+let functionName = 'sum';
+let frameStart = '2';
+let frameEnd = 'current';
+let selectedIndex = 4;
+
+function startIndex(index) {
+  if (frameStart === 'unbounded') return 0;
+  if (frameStart === 'current') return index;
+  return Math.max(0, index - Number(frameStart));
+}
+
+function endIndex(index) {
+  if (frameEnd === 'unbounded') return data.length - 1;
+  if (frameEnd === 'current') return index;
+  return Math.min(data.length - 1, index + Number(frameEnd));
+}
+
+function frameFor(index) {
+  const start = startIndex(index);
+  const end = endIndex(index);
+  return { start, end, rows: data.slice(start, end + 1) };
+}
+
+function aggregate(rows) {
+  if (functionName === 'count') return rows.length;
+  const sum = rows.reduce((total, row) => total + row.revenue, 0);
+  return functionName === 'avg' ? Math.round(sum / rows.length * 10) / 10 : sum;
+}
+
+function startSql() {
+  if (frameStart === 'unbounded') return 'UNBOUNDED PRECEDING';
+  if (frameStart === 'current') return 'CURRENT ROW';
+  return `${frameStart} PRECEDING`;
+}
+
+function endSql() {
+  if (frameEnd === 'unbounded') return 'UNBOUNDED FOLLOWING';
+  if (frameEnd === 'current') return 'CURRENT ROW';
+  return `${frameEnd} FOLLOWING`;
+}
+
+function renderSql() {
+  const argument = functionName === 'count' ? '*' : 'revenue';
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span>\n    event_date,\n    revenue,\n    <span class="fn">${functionName.toUpperCase()}(${argument})</span> <span class="kw">OVER</span> (\n        <span class="kw">ORDER BY</span> event_date\n        <span class="frame-sql"><span class="kw">ROWS BETWEEN</span> ${startSql()} <span class="kw">AND</span> ${endSql()}</span>\n    ) <span class="kw">AS</span> window_${functionName}\n<span class="kw">FROM</span> daily_revenue\n<span class="kw">ORDER BY</span> event_date`;
+}
+
+function renderTimeline() {
+  const frame = frameFor(selectedIndex);
+  document.getElementById('timeline').innerHTML = data.map((row, index) => {
+    const classes = ['day', index >= frame.start && index <= frame.end ? 'inside' : 'outside', index === selectedIndex ? 'current' : '', index === frame.start ? 'boundary-start' : '', index === frame.end ? 'boundary-end' : ''].filter(Boolean).join(' ');
+    return `<button class="${classes}" type="button" data-index="${index}"><div class="day-date">${row.event_date.slice(5)}</div><div class="day-value">${row.revenue}</div><div class="day-position">позиция ${index + 1}</div></button>`;
+  }).join('');
+}
+
+function formatValue(value) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+function renderTable() {
+  document.getElementById('result-header').textContent = `window_${functionName}`;
+  document.getElementById('result-body').innerHTML = data.map((row, index) => {
+    const frame = frameFor(index);
+    const value = aggregate(frame.rows);
+    return `<tr class="result-row ${index === selectedIndex ? 'selected' : ''}" data-index="${index}"><td>${row.event_date}</td><td>${row.revenue}</td><td>${frame.rows.length}</td><td class="window-value">${formatValue(value)}</td></tr>`;
+  }).join('');
+}
+
+function renderExplain() {
+  const current = data[selectedIndex];
+  const frame = frameFor(selectedIndex);
+  const values = frame.rows.map((row) => row.revenue);
+  const value = aggregate(frame.rows);
+  let formula;
+  if (functionName === 'sum') formula = `${values.join(' + ')} = ${formatValue(value)}`;
+  else if (functionName === 'avg') formula = `(${values.join(' + ')}) / ${values.length} = ${formatValue(value)}`;
+  else formula = `${values.length} ${values.length === 1 ? 'строка' : 'строк'}`;
+  document.getElementById('explain').innerHTML = `
+    <div class="explain-title">Текущая строка</div>
+    <div class="current-date">${current.event_date}</div>
+    <div class="explain-text">Рамка идёт от позиции ${frame.start + 1} до позиции ${frame.end + 1} и содержит ${frame.rows.length} строк.</div>
+    <div class="formula">${formula}</div>
+    <div class="result-value">${functionName.toUpperCase()} = ${formatValue(value)}</div>
+    <div class="explain-text">У крайних строк рамка становится короче: за границами раздела строк просто нет.</div>`;
+}
+
+function render() {
+  document.querySelectorAll('[data-function]').forEach((button) => button.classList.toggle('active', button.dataset.function === functionName));
+  renderSql();
+  renderTimeline();
+  renderTable();
+  renderExplain();
+}
+
+document.getElementById('function-toggle').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-function]');
+  if (!button) return;
+  functionName = button.dataset.function;
+  render();
+});
+
+document.getElementById('start-select').addEventListener('change', (event) => {
+  frameStart = event.target.value;
+  render();
+});
+
+document.getElementById('end-select').addEventListener('change', (event) => {
+  frameEnd = event.target.value;
+  render();
+});
+
+function selectRow(event) {
+  const row = event.target.closest('[data-index]');
+  if (!row) return;
+  selectedIndex = Number(row.dataset.index);
+  render();
+}
+
+document.getElementById('timeline').addEventListener('click', selectRow);
+document.getElementById('result-body').addEventListener('click', selectRow);
+render();
+</script>
+</body>
+</html>
