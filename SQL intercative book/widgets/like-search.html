@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIKE и поиск по строке</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 14px; }
+  .tab, .helper {
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 11px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .tab { padding: 10px 8px; }
+  .helper { padding: 7px 10px; }
+  .tab:hover, .helper:hover { border-color: #85b7eb; }
+  .tab.active, .helper.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .hint {
+    margin-bottom: 14px;
+    padding: 11px 13px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .control {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+  }
+  .control-title { margin-bottom: 8px; color: #85837c; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .pattern-row { display: flex; align-items: center; gap: 8px; }
+  .pattern-field { display: flex; min-width: 0; flex: 1; align-items: center; gap: 3px; padding: 8px 10px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fff; }
+  .quote { color: #639922; font: 700 13px "Courier New", monospace; }
+  input[type="text"] { min-width: 60px; width: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: #343431; font: 13px "Courier New", monospace; }
+  .helpers { display: flex; gap: 6px; }
+  .toggle-row { display: flex; min-height: 34px; align-items: center; gap: 10px; color: #5f5e5a; font: 11px "Courier New", monospace; }
+  .switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 999px;
+    background: #d3d1c7;
+    cursor: pointer;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.18);
+    transition: .18s;
+  }
+  .switch.on { background: #185fa5; }
+  .switch.on::after { left: 23px; }
+  .sql {
+    margin-bottom: 14px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 13px/1.75 "Courier New", monospace;
+    white-space: pre-wrap;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .value { color: #a6e3a1; }
+  .wildcard { color: #f9e2af; font-weight: 700; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .legend-item { padding: 6px 9px; border-radius: 7px; background: #fafaf8; color: #77756f; font-size: 11px; }
+  .legend-item b { color: #5b2d8e; font: 700 13px "Courier New", monospace; }
+  .table-title { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .count { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 9px 10px; border-bottom: 1px solid #efeee9; text-align: left; }
+  th { background: #fafaf8; color: #77756f; font: 11px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  tr.match td { background: #f5faef; }
+  tr.match td:first-child { border-left: 3px solid #639922; color: #27500a; }
+  tr.miss td { opacity: .3; }
+  .match-status { color: #27500a; font-weight: 700; }
+  mark { padding: 1px 2px; border-radius: 3px; background: #dceec8; color: #27500a; font-weight: 700; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  @media (max-width: 680px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .tabs, .controls { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>LIKE и поиск по строке</h1>
+  <p class="intro"><code>LIKE</code> сравнивает текст с шаблоном. Без специальных символов нужно полное совпадение; <code>%</code> и <code>_</code> делают поиск гибким.</p>
+
+  <div class="tabs">
+    <button class="tab active" type="button" data-preset="exact">Точное совпадение</button>
+    <button class="tab" type="button" data-preset="contains">Содержит текст · %</button>
+    <button class="tab" type="button" data-preset="character">Один символ · _</button>
+  </div>
+
+  <div id="hint" class="hint"></div>
+
+  <div class="controls">
+    <div class="control">
+      <div class="control-title">Шаблон поиска</div>
+      <div class="pattern-row">
+        <div class="pattern-field"><span class="quote">'</span><input id="pattern" type="text" value="Кот" spellcheck="false" aria-label="Шаблон LIKE"><span class="quote">'</span></div>
+        <div class="helpers">
+          <button class="helper" type="button" data-insert="%">%</button>
+          <button class="helper" type="button" data-insert="_">_</button>
+        </div>
+      </div>
+    </div>
+    <div class="control">
+      <div class="control-title">Регистр текста</div>
+      <div class="toggle-row"><button id="lower-toggle" class="switch" type="button" aria-pressed="false"></button><span>lower(title)<br>и lower('шаблон')</span></div>
+    </div>
+  </div>
+
+  <div id="sql" class="sql"></div>
+  <div class="legend">
+    <span class="legend-item"><b>%</b> — ноль или больше любых символов</span>
+    <span class="legend-item"><b>_</b> — ровно один любой символ</span>
+  </div>
+
+  <div class="table-title"><span>Таблица listings после WHERE</span><span id="match-count" class="count"></span></div>
+  <div class="table-wrap">
+    <table><thead><tr><th>id</th><th>title</th><th>результат LIKE</th></tr></thead><tbody id="table-body"></tbody></table>
+  </div>
+
+  <p class="note"><b>Важно:</b> шаблон должен описывать всю строку. Поэтому <code>LIKE 'кот'</code> не найдёт «Кот вязка», а <code>LIKE '%кот%'</code> найдёт текст с «кот» в любой позиции.</p>
+</main>
+
+<script>
+const listings = [
+  { id: 1, title: 'Кот' },
+  { id: 2, title: 'Кот вязка' },
+  { id: 3, title: 'кот породистый' },
+  { id: 4, title: 'КОТ шотландский' },
+  { id: 5, title: 'Котёнок продам' },
+  { id: 6, title: 'Вислоухий кот' },
+  { id: 7, title: 'Веслоухий котёнок' },
+  { id: 8, title: 'Мейн-кун' },
+  { id: 9, title: 'Персидская кошка' },
+];
+
+const presets = {
+  exact: {
+    pattern: 'Кот',
+    useLower: false,
+    hint: 'Без % и _ шаблон должен совпасть со всей строкой. Регистр тоже учитывается.',
+  },
+  contains: {
+    pattern: '%кот%',
+    useLower: true,
+    hint: '% разрешает любые символы до и после слова. lower() делает сравнение независимым от регистра.',
+  },
+  character: {
+    pattern: '%в_слоух%',
+    useLower: true,
+    hint: '_ заменяет ровно один символ: шаблон находит и «вислоух», и «веслоух».',
+  },
+};
+
+let activePreset = 'exact';
+let pattern = presets.exact.pattern;
+let useLower = presets.exact.useLower;
+
+const escapeHtml = (value) => String(value)
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;')
+  .replaceAll("'", '&#039;');
+const escapeRegex = (character) => /[.*+?^${}()|[\]\\]/.test(character) ? `\\${character}` : character;
+const sqlString = (value) => String(value).replaceAll("'", "''");
+
+function regexBody(likePattern) {
+  return Array.from(likePattern).map((character) => {
+    if (character === '%') return '[\\s\\S]*';
+    if (character === '_') return '[\\s\\S]';
+    return escapeRegex(character);
+  }).join('');
+}
+
+function matches(title) {
+  const source = useLower ? title.toLowerCase() : title;
+  const expected = useLower ? pattern.toLowerCase() : pattern;
+  try {
+    return new RegExp(`^${regexBody(expected)}$`, 'u').test(source);
+  } catch (error) {
+    return false;
+  }
+}
+
+function highlight(title) {
+  let core = pattern.replace(/^%+/, '').replace(/%+$/, '');
+  if (!core) return escapeHtml(title);
+  if (useLower) core = core.toLowerCase();
+  try {
+    const regex = new RegExp(regexBody(core), useLower ? 'iu' : 'u');
+    const match = regex.exec(title);
+    if (!match || !match[0]) return escapeHtml(title);
+    const before = title.slice(0, match.index);
+    const found = title.slice(match.index, match.index + match[0].length);
+    const after = title.slice(match.index + match[0].length);
+    return `${escapeHtml(before)}<mark>${escapeHtml(found)}</mark>${escapeHtml(after)}`;
+  } catch (error) {
+    return escapeHtml(title);
+  }
+}
+
+function highlightedPattern() {
+  return escapeHtml(sqlString(pattern))
+    .replaceAll('%', '<span class="wildcard">%</span>')
+    .replaceAll('_', '<span class="wildcard">_</span>');
+}
+
+function renderSql() {
+  const left = useLower ? '<span class="fn">lower</span>(title)' : 'title';
+  const right = useLower
+    ? `<span class="fn">lower</span>(<span class="value">'${highlightedPattern()}'</span>)`
+    : `<span class="value">'${highlightedPattern()}'</span>`;
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> id, title\n<span class="kw">FROM</span> listings\n<span class="kw">WHERE</span> ${left} <span class="kw">LIKE</span> ${right};`;
+}
+
+function renderTable() {
+  let matchCount = 0;
+  document.getElementById('table-body').innerHTML = listings.map((listing) => {
+    const matched = matches(listing.title);
+    if (matched) matchCount += 1;
+    return `<tr class="${matched ? 'match' : 'miss'}"><td>${listing.id}</td><td>${matched ? highlight(listing.title) : escapeHtml(listing.title)}</td><td class="${matched ? 'match-status' : ''}">${matched ? 'совпадение' : 'не прошло'}</td></tr>`;
+  }).join('');
+  document.getElementById('match-count').textContent = `${matchCount} из ${listings.length} строк`;
+}
+
+function render() {
+  const preset = presets[activePreset];
+  document.getElementById('hint').textContent = preset
+    ? preset.hint
+    : 'Измени шаблон, добавь % или _, а затем сравни результат с запросом.';
+  document.getElementById('pattern').value = pattern;
+  const toggle = document.getElementById('lower-toggle');
+  toggle.classList.toggle('on', useLower);
+  toggle.setAttribute('aria-pressed', String(useLower));
+  document.querySelectorAll('[data-preset]').forEach((button) => button.classList.toggle('active', button.dataset.preset === activePreset));
+  document.querySelectorAll('[data-insert]').forEach((button) => button.classList.toggle('active', pattern.includes(button.dataset.insert)));
+  renderSql();
+  renderTable();
+}
+
+document.querySelectorAll('[data-preset]').forEach((button) => button.addEventListener('click', () => {
+  activePreset = button.dataset.preset;
+  pattern = presets[activePreset].pattern;
+  useLower = presets[activePreset].useLower;
+  render();
+}));
+
+document.getElementById('pattern').addEventListener('input', (event) => {
+  pattern = event.target.value;
+  const cursor = event.target.selectionStart ?? pattern.length;
+  activePreset = null;
+  render();
+  const input = document.getElementById('pattern');
+  input.focus();
+  input.setSelectionRange(cursor, cursor);
+});
+
+document.querySelectorAll('[data-insert]').forEach((button) => button.addEventListener('mousedown', (event) => {
+  event.preventDefault();
+  const input = document.getElementById('pattern');
+  const start = input.selectionStart ?? pattern.length;
+  const end = input.selectionEnd ?? pattern.length;
+  pattern = `${pattern.slice(0, start)}${button.dataset.insert}${pattern.slice(end)}`;
+  activePreset = null;
+  render();
+  input.focus();
+  input.setSelectionRange(start + 1, start + 1);
+}));
+
+document.getElementById('lower-toggle').addEventListener('click', () => {
+  useLower = !useLower;
+  activePreset = null;
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

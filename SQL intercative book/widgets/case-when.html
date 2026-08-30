@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CASE WHEN</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 14px; }
+  .tab, .choice {
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 11px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .tab { padding: 10px 8px; }
+  .choice { padding: 7px 10px; }
+  .tab:hover, .choice:hover { border-color: #85b7eb; }
+  .tab.active, .choice.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .hint {
+    margin-bottom: 14px;
+    padding: 11px 13px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 12px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+  }
+  .control-title { color: #85837c; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .choices { display: flex; flex-wrap: wrap; gap: 7px; }
+  .range-control { display: flex; align-items: center; gap: 9px; width: min(430px, 100%); }
+  input[type="range"] { flex: 1; accent-color: #185fa5; }
+  .range-value { min-width: 52px; color: #0c447c; font: 700 12px "Courier New", monospace; text-align: right; }
+  .sql {
+    margin-bottom: 16px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 13px/1.75 "Courier New", monospace;
+    white-space: pre-wrap;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .column { color: #f9e2af; }
+  .value { color: #a6e3a1; }
+  .condition-line { display: inline-block; margin: 0 -4px; padding: 0 4px; border-radius: 4px; }
+  .condition-line.first { background: rgba(203,166,247,.14); }
+  .table-title { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .count { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 9px 10px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 11px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .included td { background: #f5faef; }
+  .excluded td { opacity: .42; }
+  .result-cell { color: #0c447c; font-weight: 700; }
+  .null-value { color: #8a5a08; font-style: italic; }
+  .badge { display: inline-block; padding: 3px 7px; border-radius: 6px; font: 700 10px "Courier New", monospace; }
+  .high { background: #eaf3de; color: #27500a; }
+  .regular { background: #f0efe8; color: #5f5e5a; }
+  .large { background: #f0eaf8; color: #5b2d8e; }
+  .medium { background: #e6f1fb; color: #0c447c; }
+  .small { background: #faeeda; color: #633806; }
+  .paid { background: #eaf3de; color: #27500a; }
+  .cancelled { background: #f0efe8; color: #77756f; }
+  .refunded { background: #faeeda; color: #633806; }
+  .summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; margin-bottom: 14px; }
+  .summary-card { padding: 13px; border: 1px solid #e5e4de; border-radius: 10px; background: #fafaf8; }
+  .summary-label { margin-bottom: 7px; color: #77756f; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .summary-value { color: #0c447c; font: 700 20px "Courier New", monospace; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  @media (max-width: 680px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .tabs, .summary { grid-template-columns: 1fr; }
+    .controls { align-items: flex-start; flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>CASE WHEN</h1>
+  <p class="intro"><code>CASE</code> проверяет условия и возвращает значение для каждой строки. Его можно использовать как новое поле или поместить внутрь агрегатной функции.</p>
+
+  <div class="tabs">
+    <button class="tab active" type="button" data-mode="single">Одно условие</button>
+    <button class="tab" type="button" data-mode="multiple">Несколько WHEN</button>
+    <button class="tab" type="button" data-mode="aggregate">CASE в агрегации</button>
+  </div>
+
+  <div id="hint" class="hint"></div>
+  <div id="controls" class="controls"></div>
+  <div id="sql" class="sql"></div>
+  <div id="summary" class="summary"></div>
+
+  <div class="table-title"><span>Результат на таблице orders</span><span id="row-count" class="count">6 строк</span></div>
+  <div class="table-wrap"><table><thead id="table-head"></thead><tbody id="table-body"></tbody></table></div>
+
+  <p class="note"><b>Важно:</b> <code>CASE</code> останавливается на первом истинном <code>WHEN</code>. Если ни одно условие не сработало и <code>ELSE</code> не указан, результатом будет <code>NULL</code>.</p>
+</main>
+
+<script>
+const orders = [
+  { order_id: 1, amount: 800, status: 'paid' },
+  { order_id: 2, amount: 1200, status: 'cancelled' },
+  { order_id: 3, amount: 3500, status: 'paid' },
+  { order_id: 4, amount: 6200, status: 'paid' },
+  { order_id: 5, amount: 9800, status: 'refunded' },
+  { order_id: 6, amount: 15000, status: 'paid' },
+];
+
+const hints = {
+  single: 'Двигай порог: для каждой строки CASE заново выбирает между результатом THEN и ELSE.',
+  multiple: 'Оба условия истинны для крупных заказов. Поменяй их порядок и посмотри, почему первым должно стоять более узкое условие.',
+  aggregate: 'CASE оставляет сумму только у строк с выбранным статусом. SUM складывает полученные значения, COUNT считает совпадения.',
+};
+const statusLabels = { paid: 'оплачен', cancelled: 'отменён', refunded: 'возвращён' };
+
+let mode = 'single';
+let threshold = 5000;
+let correctOrder = true;
+let selectedStatus = 'paid';
+const formatNumber = (value) => value.toLocaleString('ru-RU');
+
+function category(amount) {
+  const conditions = correctOrder
+    ? [
+        { test: amount >= 10000, label: 'Крупный', className: 'large', when: 'WHEN 1' },
+        { test: amount >= 5000, label: 'Средний', className: 'medium', when: 'WHEN 2' },
+      ]
+    : [
+        { test: amount >= 5000, label: 'Средний', className: 'medium', when: 'WHEN 1' },
+        { test: amount >= 10000, label: 'Крупный', className: 'large', when: 'WHEN 2' },
+      ];
+  return conditions.find((condition) => condition.test) || { label: 'Небольшой', className: 'small', when: 'ELSE' };
+}
+
+function renderControls() {
+  const root = document.getElementById('controls');
+  if (mode === 'single') {
+    root.innerHTML = `<span class="control-title">Порог amount ≥</span><div class="range-control"><input id="threshold" type="range" min="1000" max="12000" step="1000" value="${threshold}"><span id="threshold-value" class="range-value">${formatNumber(threshold)}</span></div>`;
+    document.getElementById('threshold').addEventListener('input', (event) => {
+      threshold = Number(event.target.value);
+      renderDynamic();
+    });
+  } else if (mode === 'multiple') {
+    root.innerHTML = `<span class="control-title">Порядок проверки</span><div class="choices"><button class="choice ${correctOrder ? 'active' : ''}" type="button" data-order="correct">Сначала ≥ 10 000</button><button class="choice ${!correctOrder ? 'active' : ''}" type="button" data-order="wrong">Сначала ≥ 5 000</button></div>`;
+    root.querySelectorAll('[data-order]').forEach((button) => button.addEventListener('click', () => {
+      correctOrder = button.dataset.order === 'correct';
+      renderControls();
+      renderDynamic();
+    }));
+  } else {
+    root.innerHTML = `<span class="control-title">Условие status =</span><div class="choices">${Object.entries(statusLabels).map(([status, label]) => `<button class="choice ${selectedStatus === status ? 'active' : ''}" type="button" data-status="${status}">'${status}' · ${label}</button>`).join('')}</div>`;
+    root.querySelectorAll('[data-status]').forEach((button) => button.addEventListener('click', () => {
+      selectedStatus = button.dataset.status;
+      renderControls();
+      renderDynamic();
+    }));
+  }
+}
+
+function renderSql() {
+  if (mode === 'single') {
+    document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> order_id, amount,\n       <span class="kw">CASE</span>\n         <span class="kw">WHEN</span> <span class="column">amount</span> &gt;= <span class="value">${threshold}</span> <span class="kw">THEN</span> <span class="value">'Высокий чек'</span>\n         <span class="kw">ELSE</span> <span class="value">'Обычный чек'</span>\n       <span class="kw">END AS</span> amount_group\n<span class="kw">FROM</span> orders;`;
+    return;
+  }
+  if (mode === 'multiple') {
+    const lines = correctOrder
+      ? [
+          `<span class="condition-line first"><span class="kw">WHEN</span> <span class="column">amount</span> &gt;= <span class="value">10000</span> <span class="kw">THEN</span> <span class="value">'Крупный'</span></span>`,
+          `<span class="condition-line"><span class="kw">WHEN</span> <span class="column">amount</span> &gt;= <span class="value">5000</span> <span class="kw">THEN</span> <span class="value">'Средний'</span></span>`,
+        ]
+      : [
+          `<span class="condition-line first"><span class="kw">WHEN</span> <span class="column">amount</span> &gt;= <span class="value">5000</span> <span class="kw">THEN</span> <span class="value">'Средний'</span></span>`,
+          `<span class="condition-line"><span class="kw">WHEN</span> <span class="column">amount</span> &gt;= <span class="value">10000</span> <span class="kw">THEN</span> <span class="value">'Крупный'</span></span>`,
+        ];
+    document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> order_id, amount,\n       <span class="kw">CASE</span>\n         ${lines.join('\n         ')}\n         <span class="kw">ELSE</span> <span class="value">'Небольшой'</span>\n       <span class="kw">END AS</span> order_size\n<span class="kw">FROM</span> orders;`;
+    return;
+  }
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span>\n  <span class="fn">SUM</span>(<span class="kw">CASE WHEN</span> <span class="column">status</span> = <span class="value">'${selectedStatus}'</span> <span class="kw">THEN</span> amount <span class="kw">ELSE</span> 0 <span class="kw">END</span>) <span class="kw">AS</span> selected_amount,\n  <span class="fn">COUNT</span>(<span class="kw">CASE WHEN</span> <span class="column">status</span> = <span class="value">'${selectedStatus}'</span> <span class="kw">THEN</span> 1 <span class="kw">END</span>) <span class="kw">AS</span> selected_orders\n<span class="kw">FROM</span> orders;`;
+}
+
+function renderTable() {
+  const head = document.getElementById('table-head');
+  const body = document.getElementById('table-body');
+  document.getElementById('row-count').textContent = '6 строк';
+
+  if (mode === 'single') {
+    head.innerHTML = '<tr><th>order_id</th><th>amount</th><th>amount_group</th></tr>';
+    body.innerHTML = orders.map((order) => {
+      const high = order.amount >= threshold;
+      return `<tr><td>${order.order_id}</td><td>${formatNumber(order.amount)}</td><td><span class="badge ${high ? 'high' : 'regular'}">${high ? 'Высокий чек' : 'Обычный чек'}</span></td></tr>`;
+    }).join('');
+    return;
+  }
+
+  if (mode === 'multiple') {
+    head.innerHTML = '<tr><th>order_id</th><th>amount</th><th>order_size</th><th>сработало</th></tr>';
+    body.innerHTML = orders.map((order) => {
+      const result = category(order.amount);
+      return `<tr><td>${order.order_id}</td><td>${formatNumber(order.amount)}</td><td><span class="badge ${result.className}">${result.label}</span></td><td class="result-cell">${result.when}</td></tr>`;
+    }).join('');
+    return;
+  }
+
+  head.innerHTML = '<tr><th>order_id</th><th>status</th><th>amount</th><th>CASE для SUM</th><th>CASE для COUNT</th></tr>';
+  body.innerHTML = orders.map((order) => {
+    const included = order.status === selectedStatus;
+    return `<tr class="${included ? 'included' : 'excluded'}"><td>${order.order_id}</td><td><span class="badge ${order.status}">${order.status}</span></td><td>${formatNumber(order.amount)}</td><td class="result-cell">${included ? formatNumber(order.amount) : '0'}</td><td class="result-cell ${included ? '' : 'null-value'}">${included ? '1' : 'NULL'}</td></tr>`;
+  }).join('');
+}
+
+function renderSummary() {
+  const summary = document.getElementById('summary');
+  summary.style.display = mode === 'aggregate' ? 'grid' : 'none';
+  if (mode !== 'aggregate') return;
+  const selected = orders.filter((order) => order.status === selectedStatus);
+  const amount = selected.reduce((sum, order) => sum + order.amount, 0);
+  summary.innerHTML = `<div class="summary-card"><div class="summary-label">selected_amount</div><div class="summary-value">${formatNumber(amount)}</div></div><div class="summary-card"><div class="summary-label">selected_orders</div><div class="summary-value">${selected.length}</div></div>`;
+}
+
+function renderDynamic() {
+  if (mode === 'single') document.getElementById('threshold-value').textContent = formatNumber(threshold);
+  renderSql();
+  renderSummary();
+  renderTable();
+}
+
+function render() {
+  document.getElementById('hint').textContent = hints[mode];
+  document.querySelectorAll('[data-mode]').forEach((button) => button.classList.toggle('active', button.dataset.mode === mode));
+  renderControls();
+  renderDynamic();
+}
+
+document.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => {
+  mode = button.dataset.mode;
+  render();
+}));
+
+render();
+</script>
+</body>
+</html>

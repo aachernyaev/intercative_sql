@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Условия: AND, OR и IN</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 14px; }
+  .tab, .choice, .category-chip {
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 11px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .tab { padding: 10px 8px; }
+  .choice, .category-chip { padding: 7px 10px; }
+  .tab:hover, .choice:hover, .category-chip:hover { border-color: #85b7eb; }
+  .tab.active, .choice.active, .category-chip.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .tab.warning { border-color: #e8c96c; background: #faeeda; color: #633806; }
+  .hint {
+    margin-bottom: 14px;
+    padding: 11px 13px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 12px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+  }
+  .control-group { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .control-title { color: #85837c; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  select {
+    padding: 8px 9px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #373734;
+    font: 11px "Courier New", monospace;
+  }
+  .range { display: flex; min-width: 210px; align-items: center; gap: 7px; }
+  input[type="range"] { min-width: 90px; flex: 1; accent-color: #185fa5; }
+  .range-value { min-width: 58px; color: #0c447c; font: 700 11px "Courier New", monospace; text-align: right; }
+  .switch-row { display: flex; align-items: center; gap: 10px; color: #5f5e5a; font: 11px "Courier New", monospace; }
+  .switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 999px;
+    background: #d3d1c7;
+    cursor: pointer;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.18);
+    transition: .18s;
+  }
+  .switch.on { background: #185fa5; }
+  .switch.on::after { left: 23px; }
+  .sql {
+    margin-bottom: 14px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 13px/1.75 "Courier New", monospace;
+    white-space: pre-wrap;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .column { color: #f9e2af; }
+  .value { color: #a6e3a1; }
+  .priority-mark { display: inline-block; margin: 0 -4px; padding: 0 4px; border-radius: 4px; background: rgba(203,166,247,.16); }
+  .logic {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-bottom: 14px;
+    padding: 11px 12px;
+    border: 1px solid #e5e4de;
+    border-radius: 9px;
+    background: #fafaf8;
+    color: #77756f;
+    font: 11px "Courier New", monospace;
+  }
+  .logic-part { padding: 5px 8px; border-radius: 7px; background: #e6f1fb; color: #0c447c; font-weight: 700; }
+  .logic-part.second { background: #f0eaf8; color: #5b2d8e; }
+  .logic-op { color: #888780; font-weight: 700; }
+  .table-title { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .count { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 9px 10px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 11px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  tr.match td { background: #f5faef; }
+  tr.match td:first-child { border-left: 3px solid #639922; }
+  tr.miss td { opacity: .3; }
+  .boolean { display: inline-block; min-width: 42px; padding: 2px 6px; border-radius: 5px; font: 700 10px "Courier New", monospace; text-align: center; }
+  .true { background: #eaf3de; color: #27500a; }
+  .false { background: #f0efe8; color: #77756f; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  @media (max-width: 700px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .tabs { grid-template-columns: 1fr; }
+    .controls { align-items: flex-start; flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Условия: AND, OR и IN</h1>
+  <p class="intro"><code>AND</code> требует выполнения всех условий, <code>OR</code> — хотя бы одного. <code>IN</code> компактно проверяет принадлежность значению из списка.</p>
+
+  <div class="tabs">
+    <button class="tab active" type="button" data-mode="combine">AND или OR</button>
+    <button class="tab" type="button" data-mode="in">IN</button>
+    <button class="tab" type="button" data-mode="priority">Приоритет и скобки</button>
+  </div>
+
+  <div id="hint" class="hint"></div>
+  <div id="controls" class="controls"></div>
+  <div id="sql" class="sql"></div>
+  <div id="logic" class="logic"></div>
+
+  <div class="table-title"><span>Таблица products после WHERE</span><span id="match-count" class="count"></span></div>
+  <div class="table-wrap"><table><thead id="table-head"></thead><tbody id="table-body"></tbody></table></div>
+
+  <p class="note"><b>Запомни:</b> SQL вычисляет <code>AND</code> раньше <code>OR</code>. Если условия должны объединяться иначе, зафиксируй нужный порядок скобками.</p>
+</main>
+
+<script>
+const products = [
+  { id: 1, product: 'Телефон', category: 'electronics', price: 80000 },
+  { id: 2, product: 'Наушники', category: 'electronics', price: 4000 },
+  { id: 3, product: 'Кресло', category: 'home', price: 12000 },
+  { id: 4, product: 'Лампа', category: 'home', price: 2500 },
+  { id: 5, product: 'Книга', category: 'books', price: 900 },
+  { id: 6, product: 'Пальто', category: 'clothing', price: 15000 },
+];
+const categories = ['electronics', 'home', 'books', 'clothing'];
+const hints = {
+  combine: 'Сравни AND с OR на тех же двух проверках. В таблице отдельно показан результат каждого условия.',
+  in: 'Выбирай категории. IN проверяет, совпало ли значение хотя бы с одним элементом списка.',
+  priority: 'Без скобок AND связывает второе условие с ценой раньше, чем срабатывает OR. Переключи скобки и сравни результат.',
+};
+
+let mode = 'combine';
+let operator = 'AND';
+let selectedCategory = 'electronics';
+let priceLimit = 5000;
+let inCategories = new Set(['electronics', 'home']);
+let useParentheses = false;
+const formatPrice = (value) => value.toLocaleString('ru-RU');
+
+function conditions(product) {
+  return {
+    a: product.category === selectedCategory,
+    b: product.price < priceLimit,
+  };
+}
+
+function matches(product) {
+  if (mode === 'combine') {
+    const { a, b } = conditions(product);
+    return operator === 'AND' ? a && b : a || b;
+  }
+  if (mode === 'in') return inCategories.has(product.category);
+  return useParentheses
+    ? (product.category === 'electronics' || product.category === 'home') && product.price < 10000
+    : product.category === 'electronics' || (product.category === 'home' && product.price < 10000);
+}
+
+function renderControls() {
+  const root = document.getElementById('controls');
+  if (mode === 'combine') {
+    root.innerHTML = `
+      <div class="control-group"><span class="control-title">Связка</span><button class="choice ${operator === 'AND' ? 'active' : ''}" type="button" data-operator="AND">AND</button><button class="choice ${operator === 'OR' ? 'active' : ''}" type="button" data-operator="OR">OR</button></div>
+      <div class="control-group"><span class="control-title">Категория</span><select id="category">${categories.map((category) => `<option value="${category}">${category}</option>`).join('')}</select></div>
+      <div class="range"><span class="control-title">price &lt;</span><input id="price-limit" type="range" min="1000" max="20000" step="1000" value="${priceLimit}"><span id="price-value" class="range-value">${formatPrice(priceLimit)}</span></div>`;
+    document.getElementById('category').value = selectedCategory;
+    root.querySelectorAll('[data-operator]').forEach((button) => button.addEventListener('click', () => {
+      operator = button.dataset.operator;
+      renderControls();
+      renderDynamic();
+    }));
+    document.getElementById('category').addEventListener('change', (event) => {
+      selectedCategory = event.target.value;
+      renderDynamic();
+    });
+    document.getElementById('price-limit').addEventListener('input', (event) => {
+      priceLimit = Number(event.target.value);
+      renderDynamic();
+    });
+  } else if (mode === 'in') {
+    root.innerHTML = `<span class="control-title">Значения внутри IN</span><div class="control-group">${categories.map((category) => `<button class="category-chip ${inCategories.has(category) ? 'active' : ''}" type="button" data-category="${category}">'${category}'</button>`).join('')}</div>`;
+    root.querySelectorAll('[data-category]').forEach((button) => button.addEventListener('click', () => {
+      const category = button.dataset.category;
+      if (inCategories.has(category) && inCategories.size > 1) inCategories.delete(category);
+      else if (!inCategories.has(category)) inCategories.add(category);
+      renderControls();
+      renderDynamic();
+    }));
+  } else {
+    root.innerHTML = `<span class="control-title">Группировка условий</span><div class="switch-row"><button id="parentheses-toggle" class="switch ${useParentheses ? 'on' : ''}" type="button" aria-pressed="${useParentheses}"></button><span>${useParentheses ? '(electronics OR home) AND price' : 'electronics OR (home AND price)'}</span></div>`;
+    document.getElementById('parentheses-toggle').addEventListener('click', () => {
+      useParentheses = !useParentheses;
+      render();
+    });
+  }
+}
+
+function renderSql() {
+  let condition;
+  if (mode === 'combine') {
+    condition = `<span class="column">category</span> = <span class="value">'${selectedCategory}'</span>\n  <span class="kw">${operator}</span> <span class="column">price</span> &lt; <span class="value">${priceLimit}</span>`;
+  } else if (mode === 'in') {
+    const values = [...inCategories].map((category) => `<span class="value">'${category}'</span>`).join(', ');
+    condition = `<span class="column">category</span> <span class="kw">IN</span> (${values || '<span class="value">/* пустой список */</span>'})`;
+  } else if (useParentheses) {
+    condition = `(<span class="column">category</span> = <span class="value">'electronics'</span>\n   <span class="kw">OR</span> <span class="column">category</span> = <span class="value">'home'</span>)\n  <span class="kw">AND</span> <span class="column">price</span> &lt; <span class="value">10000</span>`;
+  } else {
+    condition = `<span class="column">category</span> = <span class="value">'electronics'</span>\n  <span class="kw">OR</span> <span class="priority-mark"><span class="column">category</span> = <span class="value">'home'</span>\n <span class="kw">AND</span> <span class="column">price</span> &lt; <span class="value">10000</span></span>`;
+  }
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> product, category, price\n<span class="kw">FROM</span> products\n<span class="kw">WHERE</span> ${condition};`;
+}
+
+function renderLogic() {
+  const root = document.getElementById('logic');
+  if (mode === 'combine') {
+    root.innerHTML = `<span class="logic-part">A · category = '${selectedCategory}'</span><span class="logic-op">${operator}</span><span class="logic-part second">B · price &lt; ${formatPrice(priceLimit)}</span><span class="logic-op">→ оба / хотя бы одно условие</span>`;
+  } else if (mode === 'in') {
+    root.innerHTML = `<span class="logic-part">category IN (...)</span><span class="logic-op">эквивалентно цепочке проверок через OR</span>`;
+  } else {
+    root.innerHTML = useParentheses
+      ? `<span class="logic-part">electronics OR home</span><span class="logic-op">сначала, затем AND</span><span class="logic-part second">price &lt; 10 000</span>`
+      : `<span class="logic-part">home AND price &lt; 10 000</span><span class="logic-op">сначала, затем OR</span><span class="logic-part second">electronics</span>`;
+  }
+}
+
+function boolBadge(value) {
+  return `<span class="boolean ${value ? 'true' : 'false'}">${value ? 'TRUE' : 'FALSE'}</span>`;
+}
+
+function renderTable() {
+  const head = document.getElementById('table-head');
+  if (mode === 'combine') {
+    head.innerHTML = '<tr><th>product</th><th>category</th><th>price</th><th>A</th><th>B</th><th>WHERE</th></tr>';
+  } else {
+    head.innerHTML = '<tr><th>product</th><th>category</th><th>price</th><th>WHERE</th></tr>';
+  }
+
+  let count = 0;
+  document.getElementById('table-body').innerHTML = products.map((product) => {
+    const result = matches(product);
+    if (result) count += 1;
+    const checks = conditions(product);
+    const extra = mode === 'combine' ? `<td>${boolBadge(checks.a)}</td><td>${boolBadge(checks.b)}</td>` : '';
+    return `<tr class="${result ? 'match' : 'miss'}"><td>${product.product}</td><td>${product.category}</td><td>${formatPrice(product.price)}</td>${extra}<td>${boolBadge(result)}</td></tr>`;
+  }).join('');
+  document.getElementById('match-count').textContent = `${count} из ${products.length} строк`;
+  if (mode === 'combine') document.getElementById('price-value').textContent = formatPrice(priceLimit);
+}
+
+function renderDynamic() {
+  renderSql();
+  renderLogic();
+  renderTable();
+}
+
+function render() {
+  document.getElementById('hint').textContent = hints[mode];
+  document.querySelectorAll('[data-mode]').forEach((button) => {
+    button.classList.toggle('active', button.dataset.mode === mode);
+    button.classList.toggle('warning', button.dataset.mode === 'priority' && mode === 'priority' && !useParentheses);
+  });
+  renderControls();
+  renderDynamic();
+}
+
+document.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => {
+  mode = button.dataset.mode;
+  render();
+}));
+
+render();
+</script>
+</body>
+</html>

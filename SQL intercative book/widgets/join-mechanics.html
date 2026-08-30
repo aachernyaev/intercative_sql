@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Как таблицы соединяются</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 14px; }
+  .step {
+    padding: 10px 8px;
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 11px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .step:hover { border-color: #85b7eb; }
+  .step.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .hint {
+    margin-bottom: 14px;
+    padding: 11px 13px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .sql {
+    margin-bottom: 16px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 13px/1.75 "Courier New", monospace;
+    white-space: pre-wrap;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .join-kw { color: #cba6f7; font-weight: 700; }
+  .column { color: #f9e2af; }
+  .dim { opacity: .25; }
+  .sql-focus { display: inline-block; margin: 0 -4px; padding: 0 4px; border-radius: 4px; background: rgba(203,166,247,.16); }
+  .sources { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 12px; }
+  .join-symbol { display: grid; place-items: center; min-width: 76px; padding-top: 92px; }
+  .symbol-card { padding: 7px 9px; border: 1px solid #d3d1c7; border-radius: 8px; background: #fafaf8; color: #77756f; font: 700 10px "Courier New", monospace; text-align: center; }
+  .symbol-card.found { border-color: #8cc76b; background: #eaf3de; color: #27500a; }
+  .symbol-card.missing { border-color: #e8c96c; background: #faeeda; color: #633806; }
+  .table-title { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .alias { color: #999790; font: 400 11px "Courier New", monospace; text-transform: none; letter-spacing: 0; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 9px 10px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 11px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover td { background: #f3f8fd; }
+  tr.selected td { background: #e6f1fb; }
+  tr.matched td { background: #eaf3de; color: #27500a; }
+  tr.dimmed td { opacity: .28; }
+  td.key { color: #0c447c; font-weight: 700; }
+  .match-panel {
+    margin-top: 14px;
+    padding: 13px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+  }
+  .match-title { margin-bottom: 9px; color: #77756f; font-size: 11px; }
+  .equation { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font: 700 12px "Courier New", monospace; }
+  .key-chip { padding: 5px 8px; border-radius: 7px; background: #e6f1fb; color: #0c447c; }
+  .key-chip.right { background: #f0eaf8; color: #5b2d8e; }
+  .operator { color: #aaa89f; }
+  .status { padding: 5px 8px; border-radius: 7px; }
+  .status.found { background: #eaf3de; color: #27500a; }
+  .status.missing { background: #faeeda; color: #633806; }
+  .result { margin-top: 14px; }
+  .result-row-count { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .result td { background: #f8fbfe; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .hidden { display: none; }
+  @media (max-width: 700px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .steps, .sources { grid-template-columns: 1fr; }
+    .join-symbol { min-width: 0; padding: 0; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Как таблицы соединяются</h1>
+  <p class="intro"><code>JOIN</code> ищет пары строк по условию <code>ON</code>, а затем собирает колонки найденных строк в одну широкую строку.</p>
+
+  <div class="steps">
+    <button class="step active" type="button" data-step="sources">1. Две таблицы</button>
+    <button class="step" type="button" data-step="condition">2. Условие ON</button>
+    <button class="step" type="button" data-step="result">3. Результат JOIN</button>
+  </div>
+
+  <div id="hint" class="hint"></div>
+  <div id="sql" class="sql"></div>
+
+  <div class="sources">
+    <section>
+      <div class="table-title"><span>users</span><span class="alias">алиас u</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>user_id</th><th>name</th></tr></thead>
+          <tbody id="users-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="join-symbol"><div id="join-symbol" class="symbol-card">user_id<br>=<br>user_id</div></div>
+
+    <section>
+      <div class="table-title"><span>profiles</span><span class="alias">алиас p</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>user_id</th><th>city</th></tr></thead>
+          <tbody id="profiles-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div id="match-panel" class="match-panel hidden"></div>
+
+  <section id="result-section" class="result hidden">
+    <div class="table-title"><span>Результат INNER JOIN</span><span class="result-row-count">2 совпавшие строки</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>user_id</th><th>name</th><th>city</th></tr></thead>
+        <tbody id="result-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="note"><b>Главное:</b> названия ключевых колонок могут различаться — важно само условие <code>ON</code>. Здесь выбран <code>INNER JOIN</code>, поэтому строки без пары не попали в результат; остальные типы соединения разбираются в следующей теме.</p>
+</main>
+
+<script>
+const users = [
+  { user_id: 1, name: 'Анна' },
+  { user_id: 2, name: 'Борис' },
+  { user_id: 3, name: 'Вера' },
+];
+const profiles = [
+  { user_id: 1, city: 'Москва' },
+  { user_id: 3, city: 'Казань' },
+  { user_id: 4, city: 'Омск' },
+];
+
+const hints = {
+  sources: 'Слева и справа находятся самостоятельные таблицы. Сначала SQL берёт таблицу из FROM, затем подключает вторую.',
+  condition: 'ON сравнивает ключ текущей строки users с ключами profiles. Нажимай на строки слева и наблюдай поиск пары.',
+  result: 'Для каждой найденной пары SQL объединяет колонки двух строк. Строки без совпадения INNER JOIN отбрасывает.',
+};
+
+let step = 'sources';
+let selectedUser = 0;
+
+function profileFor(user) {
+  return profiles.find((profile) => profile.user_id === user.user_id) || null;
+}
+
+function renderSql() {
+  const joinClass = step === 'sources' ? 'dim' : '';
+  const onClass = step === 'condition' ? 'sql-focus' : '';
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> u.user_id, u.name, p.city\n<span class="kw">FROM</span> users <span class="kw">AS</span> u\n<span class="${joinClass}"><span class="join-kw">INNER JOIN</span> profiles <span class="kw">AS</span> p\n<span class="${onClass}">  <span class="kw">ON</span> <span class="column">u.user_id</span> = <span class="column">p.user_id</span></span></span>;`;
+}
+
+function renderTables() {
+  const user = users[selectedUser];
+  const match = profileFor(user);
+  const matchedKeys = new Set(users.filter((item) => profileFor(item)).map((item) => item.user_id));
+
+  document.getElementById('users-body').innerHTML = users.map((item, index) => {
+    const classes = [];
+    if (step === 'condition') classes.push('clickable', index === selectedUser ? 'selected' : 'dimmed');
+    if (step === 'result') classes.push(matchedKeys.has(item.user_id) ? 'matched' : 'dimmed');
+    return `<tr class="${classes.join(' ')}" data-user-index="${index}"><td class="key">${item.user_id}</td><td>${item.name}</td></tr>`;
+  }).join('');
+
+  document.getElementById('profiles-body').innerHTML = profiles.map((profile) => {
+    const classes = [];
+    if (step === 'condition') classes.push(match && profile.user_id === match.user_id ? 'matched' : 'dimmed');
+    if (step === 'result') classes.push(matchedKeys.has(profile.user_id) ? 'matched' : 'dimmed');
+    return `<tr class="${classes.join(' ')}"><td class="key">${profile.user_id}</td><td>${profile.city}</td></tr>`;
+  }).join('');
+
+  document.querySelectorAll('[data-user-index]').forEach((row) => row.addEventListener('click', () => {
+    if (step !== 'condition') return;
+    selectedUser = Number(row.dataset.userIndex);
+    renderDynamic();
+  }));
+
+  const symbol = document.getElementById('join-symbol');
+  symbol.className = 'symbol-card';
+  if (step === 'condition') symbol.classList.add(match ? 'found' : 'missing');
+  symbol.innerHTML = step === 'condition'
+    ? `${user.user_id}<br>${match ? '=' : '≠'}<br>${match ? match.user_id : 'нет пары'}`
+    : 'user_id<br>=<br>user_id';
+}
+
+function renderMatch() {
+  const panel = document.getElementById('match-panel');
+  panel.classList.toggle('hidden', step !== 'condition');
+  if (step !== 'condition') return;
+  const user = users[selectedUser];
+  const match = profileFor(user);
+  panel.innerHTML = `<div class="match-title">Проверка строки users: ${user.name}</div>
+    <div class="equation">
+      <span class="key-chip">u.user_id = ${user.user_id}</span>
+      <span class="operator">сравниваем с</span>
+      <span class="key-chip right">${match ? `p.user_id = ${match.user_id}` : 'в profiles такого ключа нет'}</span>
+      <span class="operator">→</span>
+      <span class="status ${match ? 'found' : 'missing'}">${match ? `пара найдена: ${user.name} + ${match.city}` : 'строка не попадёт в INNER JOIN'}</span>
+    </div>`;
+}
+
+function renderResult() {
+  const section = document.getElementById('result-section');
+  section.classList.toggle('hidden', step !== 'result');
+  if (step !== 'result') return;
+  document.getElementById('result-body').innerHTML = users.flatMap((user) => {
+    const profile = profileFor(user);
+    return profile ? [`<tr><td class="key">${user.user_id}</td><td>${user.name}</td><td>${profile.city}</td></tr>`] : [];
+  }).join('');
+}
+
+function renderDynamic() {
+  renderTables();
+  renderMatch();
+  renderResult();
+}
+
+function render() {
+  document.getElementById('hint').textContent = hints[step];
+  document.querySelectorAll('[data-step]').forEach((button) => button.classList.toggle('active', button.dataset.step === step));
+  renderSql();
+  renderDynamic();
+}
+
+document.querySelectorAll('[data-step]').forEach((button) => button.addEventListener('click', () => {
+  step = button.dataset.step;
+  render();
+}));
+
+render();
+</script>
+</body>
+</html>

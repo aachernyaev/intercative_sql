@@ -16,9 +16,9 @@ const chapters = [
       },
       {
         title: 'Условия: AND, OR и IN',
-        description: 'Составляем условия из нескольких частей и сразу видим, какие строки проходят фильтр. Скобки помогают заметить приоритет AND над OR.',
-        points: ['AND и OR', 'IN', 'приоритет операторов'],
-        widget: '../and_or.html',
+        description: 'Объединяем проверки через AND и OR, собираем список IN и наблюдаем, как скобки меняют порядок вычисления условий.',
+        points: ['все или одно условие', 'IN вместо цепочки OR', 'AND раньше OR'],
+        widget: 'widgets/conditions-and-or-in.html',
       },
       {
         title: 'BETWEEN и диапазоны',
@@ -46,9 +46,9 @@ const chapters = [
       },
       {
         title: 'LIKE и поиск по строке',
-        description: 'Меняем шаблон поиска и наблюдаем, как символы % и _ влияют на совпадения. Отдельно можно проверить регистр текста.',
-        points: ['LIKE', '% и _', 'lower()'],
-        widget: '../sql_like_widget-2.html',
+        description: 'Меняем шаблон LIKE, добавляем символы % и _ и наблюдаем, какие строки проходят условие с учётом регистра.',
+        points: ['полное совпадение', '% и _', 'поиск без учёта регистра'],
+        widget: 'widgets/like-search.html',
       },
     ],
   },
@@ -57,9 +57,9 @@ const chapters = [
     lessons: [
       {
         title: 'Типы данных и функции',
-        description: 'Преобразуем значения, сравниваем способы округления и исследуем функции для работы с датами.',
-        points: ['CAST и TRY_CAST', 'округление', 'функции дат'],
-        widget: '../datatype_functions.html',
+        description: 'Преобразуем строковые значения в другие типы, сравниваем CAST с TRY_CAST и исследуем функции округления.',
+        points: ['типы значений', 'CAST и TRY_CAST', 'ROUND, CEIL и FLOOR'],
+        widget: 'widgets/data-types-functions.html',
       },
       {
         title: 'Строковые функции',
@@ -81,9 +81,9 @@ const chapters = [
       },
       {
         title: 'CASE WHEN',
-        description: 'Превращаем условия в новые признаки, разбираем порядок нескольких WHEN и используем CASE внутри агрегации.',
-        points: ['новое поле', 'порядок WHEN', 'условная агрегация'],
-        widget: '../sql_case_when_widget.html',
+        description: 'Создаём новое поле по условию, проверяем влияние порядка WHEN и используем CASE внутри SUM и COUNT.',
+        points: ['THEN и ELSE', 'первый истинный WHEN', 'условная агрегация'],
+        widget: 'widgets/case-when.html',
       },
     ],
   },
@@ -92,9 +92,9 @@ const chapters = [
     lessons: [
       {
         title: 'Агрегации и GROUP BY',
-        description: 'Сравниваем агрегат по всей таблице и по группам, наблюдаем поведение NULL, DISTINCT и HAVING.',
-        points: ['COUNT, SUM, AVG', 'GROUP BY', 'HAVING'],
-        widget: '../sql_aggregation_widget.html',
+        description: 'Наблюдаем, как агрегат сворачивает всю таблицу, GROUP BY создаёт отдельный результат для каждой группы, а HAVING фильтрует группы.',
+        points: ['COUNT, SUM и AVG', 'одна строка на группу', 'HAVING после агрегации'],
+        widget: 'widgets/aggregations-group-by.html',
       },
       {
         title: 'Порядок выполнения SQL-запроса',
@@ -109,9 +109,9 @@ const chapters = [
     lessons: [
       {
         title: 'Как таблицы соединяются',
-        description: 'Проходим соединение нескольких таблиц по шагам: от исходной таблицы к INNER JOIN и затем к LEFT JOIN.',
-        points: ['ключ соединения', 'INNER JOIN', 'LEFT JOIN'],
-        widget: '../joins.html',
+        description: 'Наблюдаем, как JOIN ищет пары строк по условию ON и собирает их колонки в одну строку результата.',
+        points: ['левая и правая таблицы', 'поиск пары по ключу', 'результат INNER JOIN'],
+        widget: 'widgets/join-mechanics.html',
       },
       {
         title: 'Типы JOIN',
@@ -156,9 +156,9 @@ const chapters = [
     lessons: [
       {
         title: 'Что меняет OVER()',
-        description: 'Добавляем PARTITION BY и ORDER BY по одному и наблюдаем, как меняются границы и порядок вычисления окна.',
-        points: ['OVER()', 'PARTITION BY', 'ORDER BY'],
-        widget: '../over.html',
+        description: 'Сравниваем обычный агрегат с оконным и наблюдаем, как OVER() сохраняет строки, а PARTITION BY делит их на группы.',
+        points: ['агрегат без окна', 'OVER() сохраняет строки', 'PARTITION BY делит окно'],
+        widget: 'widgets/over-effect.html',
       },
       {
         title: 'GROUP BY или OVER()',
@@ -186,9 +186,9 @@ const chapters = [
       },
       {
         title: 'Оконные агрегаты',
-        description: 'Переключаем агрегат, партицию и сортировку, чтобы увидеть обычный и накопительный расчёт внутри окна.',
-        points: ['оконный агрегат', 'накопительный итог', 'ROWS BETWEEN'],
-        widget: '../agg_windows.html',
+        description: 'Сравниваем итог по всему разделу с накопительным расчётом и наблюдаем, какие строки участвуют в значении каждой строки.',
+        points: ['SUM, AVG и COUNT', 'PARTITION BY', 'накопление через ORDER BY'],
+        widget: 'widgets/window-aggregates.html',
       },
       {
         title: 'Границы окна: ROWS BETWEEN',

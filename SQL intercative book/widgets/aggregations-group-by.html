@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Агрегации и GROUP BY</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 14px; }
+  .tab, .choice {
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 11px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .tab { padding: 10px 8px; }
+  .choice { padding: 7px 10px; }
+  .tab:hover, .choice:hover { border-color: #85b7eb; }
+  .tab.active, .choice.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .hint {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+    padding: 11px 13px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .row-count { flex: 0 0 auto; color: #0c447c; font: 700 11px "Courier New", monospace; }
+  .controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 12px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+  }
+  .control-title { color: #85837c; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .choices { display: flex; flex-wrap: wrap; gap: 7px; }
+  .threshold { display: flex; align-items: center; gap: 9px; }
+  input[type="range"] { width: 150px; accent-color: #185fa5; }
+  .threshold-value { min-width: 46px; color: #0c447c; font: 700 12px "Courier New", monospace; }
+  .sql {
+    margin-bottom: 16px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 13px/1.75 "Courier New", monospace;
+    white-space: pre-wrap;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .column { color: #f9e2af; }
+  .value { color: #a6e3a1; }
+  .layout { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 12px; }
+  .arrow { padding-top: 104px; color: #aaa89f; font-size: 20px; }
+  .table-title { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .count { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 9px 10px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 11px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .city-a { border-left: 3px solid #85b7eb; }
+  .city-b { border-left: 3px solid #8cc76b; }
+  .city-c { border-left: 3px solid #e8c96c; }
+  .aggregate { color: #0c447c; font-weight: 700; }
+  .filtered td { opacity: .25; text-decoration: line-through; }
+  .groups { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 14px; }
+  .group {
+    padding: 11px;
+    border: 1px solid #e5e4de;
+    border-radius: 9px;
+    background: #fafaf8;
+    transition: opacity .15s;
+  }
+  .group.filtered { opacity: .3; }
+  .group-title { margin-bottom: 7px; color: #77756f; font: 700 11px "Courier New", monospace; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip { padding: 4px 7px; border-radius: 6px; color: #343431; font: 700 10px "Courier New", monospace; }
+  .chip-a { background: #e6f1fb; }
+  .chip-b { background: #eaf3de; }
+  .chip-c { background: #faeeda; }
+  .group-result { margin-top: 8px; color: #0c447c; font: 700 11px "Courier New", monospace; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  .hidden { display: none; }
+  @media (max-width: 760px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .tabs, .groups { grid-template-columns: 1fr; }
+    .hint { align-items: flex-start; flex-direction: column; }
+    .layout { grid-template-columns: 1fr; }
+    .arrow { padding: 0; text-align: center; transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Агрегации и GROUP BY</h1>
+  <p class="intro">Агрегат превращает множество строк в итоговое значение. <code>GROUP BY</code> сначала разделяет строки на группы — и агрегат считается отдельно внутри каждой.</p>
+
+  <div class="tabs">
+    <button class="tab active" type="button" data-mode="all">1. Вся таблица</button>
+    <button class="tab" type="button" data-mode="group">2. GROUP BY city</button>
+    <button class="tab" type="button" data-mode="having">3. HAVING</button>
+  </div>
+
+  <div class="hint"><span id="hint-text"></span><span id="row-count" class="row-count"></span></div>
+
+  <div class="controls">
+    <span class="control-title">Агрегат</span>
+    <div id="aggregate-choices" class="choices">
+      <button class="choice active" type="button" data-aggregate="count">COUNT(*)</button>
+      <button class="choice" type="button" data-aggregate="sum">SUM(amount)</button>
+      <button class="choice" type="button" data-aggregate="avg">AVG(amount)</button>
+    </div>
+    <div id="threshold-control" class="threshold hidden">
+      <span class="control-title">HAVING SUM(amount) ≥</span>
+      <input id="threshold" type="range" min="500" max="3500" step="500" value="2000">
+      <span id="threshold-value" class="threshold-value">2000</span>
+    </div>
+  </div>
+
+  <div id="sql" class="sql"></div>
+
+  <div class="layout">
+    <section>
+      <div class="table-title"><span>Исходная таблица orders</span><span class="count">6 строк</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>order_id</th><th>city</th><th>amount</th></tr></thead>
+          <tbody id="source-body"></tbody>
+        </table>
+      </div>
+    </section>
+    <div class="arrow">→</div>
+    <section>
+      <div class="table-title"><span>Результат запроса</span><span id="result-count" class="count"></span></div>
+      <div class="table-wrap"><table><thead id="result-head"></thead><tbody id="result-body"></tbody></table></div>
+    </section>
+  </div>
+
+  <div id="groups" class="groups"></div>
+  <p class="note"><b>Запомни:</b> в <code>SELECT</code> вместе с агрегатами можно выводить только колонки, перечисленные в <code>GROUP BY</code>. <code>HAVING</code> фильтрует уже рассчитанные группы.</p>
+</main>
+
+<script>
+const rows = [
+  { order_id: 1, city: 'Москва', amount: 1200 },
+  { order_id: 2, city: 'Москва', amount: 800 },
+  { order_id: 3, city: 'Москва', amount: 1600 },
+  { order_id: 4, city: 'СПб', amount: 600 },
+  { order_id: 5, city: 'СПб', amount: 1400 },
+  { order_id: 6, city: 'Казань', amount: 500 },
+];
+
+const cityClass = { 'Москва': 'a', 'СПб': 'b', 'Казань': 'c' };
+const cities = ['Москва', 'СПб', 'Казань'];
+const aggregates = {
+  count: { expression: 'COUNT(*)', alias: 'order_count', calculate: (items) => items.length },
+  sum: { expression: 'SUM(amount)', alias: 'total_amount', calculate: (items) => items.reduce((sum, row) => sum + row.amount, 0) },
+  avg: { expression: 'AVG(amount)', alias: 'avg_amount', calculate: (items) => items.reduce((sum, row) => sum + row.amount, 0) / items.length },
+};
+const hints = {
+  all: 'Без GROUP BY все шесть строк образуют одну группу и превращаются в одну итоговую строку.',
+  group: 'GROUP BY city создаёт три группы. Агрегат возвращает одно значение для каждого города.',
+  having: 'HAVING проверяет результат агрегации и оставляет только группы, прошедшие условие.',
+};
+
+let mode = 'all';
+let aggregateKey = 'count';
+let threshold = 2000;
+const formatNumber = (value) => Number.isInteger(value) ? String(value) : String(Math.round(value * 100) / 100);
+const groupRows = (city) => rows.filter((row) => row.city === city);
+
+function activeAggregate() {
+  if (mode === 'having') return aggregates.sum;
+  return aggregates[aggregateKey];
+}
+
+function resultGroups() {
+  if (mode === 'all') return [{ city: null, rows }];
+  return cities.map((city) => ({ city, rows: groupRows(city) }));
+}
+
+function passesHaving(group) {
+  return mode !== 'having' || aggregates.sum.calculate(group.rows) >= threshold;
+}
+
+function renderSql() {
+  const aggregate = activeAggregate();
+  const selectCity = mode === 'all' ? '' : 'city,\n       ';
+  const groupBy = mode === 'all' ? '' : '\n<span class="kw">GROUP BY</span> city';
+  const having = mode === 'having' ? `\n<span class="kw">HAVING</span> <span class="fn">SUM</span>(<span class="column">amount</span>) &gt;= <span class="value">${threshold}</span>` : '';
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> ${selectCity}<span class="fn">${aggregate.expression.split('(')[0]}</span>(<span class="column">${aggregate.expression.slice(aggregate.expression.indexOf('(') + 1, -1)}</span>) <span class="kw">AS</span> ${aggregate.alias}\n<span class="kw">FROM</span> orders${groupBy}${having};`;
+}
+
+function renderSource() {
+  document.getElementById('source-body').innerHTML = rows.map((row) => `
+    <tr><td class="city-${cityClass[row.city]}">${row.order_id}</td><td>${row.city}</td><td>${row.amount}</td></tr>`).join('');
+}
+
+function renderResult() {
+  const aggregate = activeAggregate();
+  const groups = resultGroups();
+  const visible = groups.filter(passesHaving);
+  document.getElementById('result-head').innerHTML = mode === 'all'
+    ? `<tr><th>${aggregate.alias}</th></tr>`
+    : `<tr><th>city</th><th>${aggregate.alias}</th></tr>`;
+  document.getElementById('result-body').innerHTML = visible.map((group) => {
+    const value = formatNumber(aggregate.calculate(group.rows));
+    return mode === 'all'
+      ? `<tr><td class="aggregate">${value}</td></tr>`
+      : `<tr><td class="city-${cityClass[group.city]}">${group.city}</td><td class="aggregate">${value}</td></tr>`;
+  }).join('') || '<tr><td colspan="2">Ни одна группа не прошла условие</td></tr>';
+  document.getElementById('result-count').textContent = `${visible.length} ${visible.length === 1 ? 'строка' : 'строки'}`;
+  document.getElementById('row-count').textContent = `6 входных → ${visible.length} ${visible.length === 1 ? 'итоговая строка' : 'итоговые строки'}`;
+}
+
+function renderGroups() {
+  const aggregate = activeAggregate();
+  const groups = resultGroups();
+  document.getElementById('groups').classList.toggle('hidden', mode === 'all');
+  document.getElementById('groups').innerHTML = groups.map((group) => {
+    const result = formatNumber(aggregate.calculate(group.rows));
+    const filtered = !passesHaving(group);
+    return `<div class="group ${filtered ? 'filtered' : ''}">
+      <div class="group-title">${group.city}${filtered ? ' · отфильтрована' : ''}</div>
+      <div class="chips">${group.rows.map((row) => `<span class="chip chip-${cityClass[group.city]}">${row.amount}</span>`).join('')}</div>
+      <div class="group-result">${aggregate.expression} = ${result}</div>
+    </div>`;
+  }).join('');
+}
+
+function render() {
+  const isHaving = mode === 'having';
+  document.getElementById('hint-text').textContent = hints[mode];
+  document.getElementById('threshold-control').classList.toggle('hidden', !isHaving);
+  document.getElementById('aggregate-choices').classList.toggle('hidden', isHaving);
+  document.getElementById('threshold-value').textContent = String(threshold);
+  document.querySelectorAll('[data-mode]').forEach((button) => button.classList.toggle('active', button.dataset.mode === mode));
+  document.querySelectorAll('[data-aggregate]').forEach((button) => button.classList.toggle('active', button.dataset.aggregate === aggregateKey));
+  renderSql();
+  renderSource();
+  renderResult();
+  renderGroups();
+}
+
+document.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => {
+  mode = button.dataset.mode;
+  render();
+}));
+document.querySelectorAll('[data-aggregate]').forEach((button) => button.addEventListener('click', () => {
+  aggregateKey = button.dataset.aggregate;
+  render();
+}));
+document.getElementById('threshold').addEventListener('input', (event) => {
+  threshold = Number(event.target.value);
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

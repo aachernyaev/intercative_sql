@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Оконные агрегаты</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 18px;
+    background: #f5f5f3;
+    color: #2c2c2a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 26px;
+    border: 1px solid #e5e4de;
+    border-radius: 16px;
+    background: #fff;
+  }
+  h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.02em; }
+  .intro { margin: 0 0 18px; color: #686762; font-size: 14px; line-height: 1.6; }
+  code { color: #185fa5; font-family: "Courier New", monospace; font-weight: 700; }
+  .tabs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin-bottom: 14px; }
+  .tab, .choice {
+    border: 1px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font: 700 11px "Courier New", monospace;
+    cursor: pointer;
+  }
+  .tab { padding: 10px 8px; }
+  .choice { padding: 7px 10px; }
+  .tab:hover, .choice:hover { border-color: #85b7eb; }
+  .tab.active, .choice.active { border-color: #85b7eb; background: #e6f1fb; color: #0c447c; }
+  .hint {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+    padding: 11px 13px;
+    border-left: 3px solid #85b7eb;
+    border-radius: 7px;
+    background: #f3f8fd;
+    color: #315c84;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .window-label { flex: 0 0 auto; color: #0c447c; font: 700 11px "Courier New", monospace; }
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 12px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+  }
+  .control-title { color: #85837c; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+  .choices { display: flex; flex-wrap: wrap; gap: 7px; }
+  .sql {
+    margin-bottom: 16px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    border-radius: 11px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font: 13px/1.75 "Courier New", monospace;
+    white-space: pre-wrap;
+  }
+  .kw { color: #89b4fa; font-weight: 700; }
+  .fn { color: #cba6f7; font-weight: 700; }
+  .column { color: #f9e2af; }
+  .layout { display: grid; grid-template-columns: .88fr auto 1.12fr; align-items: start; gap: 12px; }
+  .arrow { padding-top: 105px; color: #aaa89f; font-size: 20px; }
+  .table-title { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 7px; color: #77756f; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .count { color: #999790; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e4de; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 9px 10px; border-bottom: 1px solid #efeee9; text-align: left; white-space: nowrap; }
+  th { background: #fafaf8; color: #77756f; font: 11px "Courier New", monospace; }
+  tr:last-child td { border-bottom: 0; }
+  .user-a { border-left: 3px solid #85b7eb; }
+  .user-b { border-left: 3px solid #8cc76b; }
+  tr.selectable { cursor: pointer; }
+  tr.selectable:hover td { background: #f3f8fd; }
+  tr.selected td { background: #e6f1fb; }
+  td.in-window { background: #eaf3de; color: #27500a; font-weight: 700; }
+  .result { color: #0c447c; font-weight: 700; }
+  .window-visual {
+    margin-top: 14px;
+    padding: 13px;
+    border: 1px solid #e5e4de;
+    border-radius: 10px;
+    background: #fafaf8;
+  }
+  .window-title { margin-bottom: 9px; color: #77756f; font-size: 11px; line-height: 1.45; }
+  .values { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .value-chip { padding: 5px 8px; border-radius: 7px; background: #eaf3de; color: #27500a; font: 700 11px "Courier New", monospace; }
+  .operator { color: #aaa89f; font: 11px "Courier New", monospace; }
+  .answer { padding: 5px 8px; border-radius: 7px; background: #e6f1fb; color: #0c447c; font: 700 11px "Courier New", monospace; }
+  .note { margin: 14px 0 0; color: #77756f; font-size: 12px; line-height: 1.55; }
+  @media (max-width: 760px) {
+    body { padding: 12px; }
+    .card { padding: 18px; }
+    .tabs { grid-template-columns: 1fr; }
+    .hint, .controls { align-items: flex-start; flex-direction: column; }
+    .layout { grid-template-columns: 1fr; }
+    .arrow { padding: 0; text-align: center; transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Оконные агрегаты</h1>
+  <p class="intro"><code>SUM</code>, <code>AVG</code> и <code>COUNT</code> могут считать итог по всему разделу или накапливать его по порядку строк. Нажми на строку результата, чтобы увидеть её окно.</p>
+
+  <div class="tabs">
+    <button class="tab active" type="button" data-mode="total">Итог по пользователю</button>
+    <button class="tab" type="button" data-mode="running">Накопительный итог</button>
+  </div>
+
+  <div class="hint"><span id="hint-text"></span><span id="window-label" class="window-label"></span></div>
+
+  <div class="controls">
+    <span class="control-title">Оконный агрегат</span>
+    <div class="choices">
+      <button class="choice active" type="button" data-aggregate="sum">SUM(amount)</button>
+      <button class="choice" type="button" data-aggregate="avg">AVG(amount)</button>
+      <button class="choice" type="button" data-aggregate="count">COUNT(amount)</button>
+    </div>
+  </div>
+
+  <div id="sql" class="sql"></div>
+
+  <div class="layout">
+    <section>
+      <div class="table-title"><span>Исходная таблица payments</span><span class="count">5 строк</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>user_id</th><th>date</th><th>amount</th></tr></thead>
+          <tbody id="source-body"></tbody>
+        </table>
+      </div>
+    </section>
+    <div class="arrow">→</div>
+    <section>
+      <div class="table-title"><span>Результат запроса</span><span class="count">строки сохранены</span></div>
+      <div class="table-wrap">
+        <table><thead id="result-head"></thead><tbody id="result-body"></tbody></table>
+      </div>
+    </section>
+  </div>
+
+  <div id="window-visual" class="window-visual"></div>
+  <p class="note"><b>Разница:</b> без <code>ORDER BY</code> каждая строка пользователя видит весь раздел. С <code>ORDER BY event_date</code> результат на этих данных накапливается от первой даты до текущей. Границы окна подробно разбираются в следующей теме.</p>
+</main>
+
+<script>
+const rows = [
+  { user_id: 'A', event_date: '01-01', amount: 100 },
+  { user_id: 'A', event_date: '01-03', amount: 50 },
+  { user_id: 'A', event_date: '01-05', amount: 150 },
+  { user_id: 'B', event_date: '01-02', amount: 80 },
+  { user_id: 'B', event_date: '01-04', amount: 120 },
+];
+
+const aggregates = {
+  sum: { sql: 'SUM', alias: 'user_amount', calculate: (items) => items.reduce((sum, row) => sum + row.amount, 0), operator: '+' },
+  avg: { sql: 'AVG', alias: 'user_avg', calculate: (items) => items.reduce((sum, row) => sum + row.amount, 0) / items.length, operator: 'AVG' },
+  count: { sql: 'COUNT', alias: 'payment_count', calculate: (items) => items.length, operator: 'COUNT' },
+};
+
+let mode = 'total';
+let aggregateKey = 'sum';
+let selectedIndex = 2;
+const userClass = (userId) => userId === 'A' ? 'user-a' : 'user-b';
+const formatNumber = (value) => Number.isInteger(value) ? String(value) : String(Math.round(value * 100) / 100);
+
+function rowsInWindow(index) {
+  const current = rows[index];
+  const partition = rows.filter((row) => row.user_id === current.user_id);
+  return mode === 'total'
+    ? partition
+    : partition.filter((row) => row.event_date <= current.event_date);
+}
+
+function calculate(index) {
+  return aggregates[aggregateKey].calculate(rowsInWindow(index));
+}
+
+function renderSql() {
+  const aggregate = aggregates[aggregateKey];
+  const order = mode === 'running' ? '\n         <span class="kw">ORDER BY</span> <span class="column">event_date</span>' : '';
+  document.getElementById('sql').innerHTML = `<span class="kw">SELECT</span> user_id, event_date, amount,\n       <span class="fn">${aggregate.sql}</span>(<span class="column">amount</span>) <span class="kw">OVER</span> (\n         <span class="kw">PARTITION BY</span> <span class="column">user_id</span>${order}\n       ) <span class="kw">AS</span> ${aggregate.alias}\n<span class="kw">FROM</span> payments;`;
+}
+
+function renderSource() {
+  const activeRows = new Set(rowsInWindow(selectedIndex));
+  document.getElementById('source-body').innerHTML = rows.map((row) => `
+    <tr><td class="${userClass(row.user_id)}">${row.user_id}</td><td>${row.event_date}</td><td class="${activeRows.has(row) ? 'in-window' : ''}">${row.amount}</td></tr>`).join('');
+}
+
+function renderResult() {
+  const aggregate = aggregates[aggregateKey];
+  document.getElementById('result-head').innerHTML = `<tr><th>user_id</th><th>date</th><th>amount</th><th>${aggregate.alias}</th></tr>`;
+  document.getElementById('result-body').innerHTML = rows.map((row, index) => `
+    <tr class="selectable ${index === selectedIndex ? 'selected' : ''}" data-index="${index}">
+      <td class="${userClass(row.user_id)}">${row.user_id}</td><td>${row.event_date}</td><td>${row.amount}</td><td class="result">${formatNumber(calculate(index))}</td>
+    </tr>`).join('');
+  document.querySelectorAll('[data-index]').forEach((resultRow) => resultRow.addEventListener('click', () => {
+    selectedIndex = Number(resultRow.dataset.index);
+    renderDynamic();
+  }));
+}
+
+function renderWindowVisual() {
+  const aggregate = aggregates[aggregateKey];
+  const activeRows = rowsInWindow(selectedIndex);
+  const current = rows[selectedIndex];
+  const chips = activeRows.map((row) => `<span class="value-chip">${row.amount}</span>`).join(aggregateKey === 'sum' ? '<span class="operator">+</span>' : '');
+  const operation = aggregateKey === 'sum'
+    ? ''
+    : aggregateKey === 'avg'
+      ? `<span class="operator">среднее из ${activeRows.length}</span>`
+      : `<span class="operator">количество значений: ${activeRows.length}</span>`;
+  document.getElementById('window-visual').innerHTML = `
+    <div class="window-title">Окно строки user_id = ${current.user_id}, date = ${current.event_date}</div>
+    <div class="values">${chips}${operation}<span class="operator">=</span><span class="answer">${aggregate.sql} ${formatNumber(calculate(selectedIndex))}</span></div>`;
+  document.getElementById('window-label').textContent = `${activeRows.length} ${activeRows.length === 1 ? 'строка' : 'строки'} в текущем окне`;
+}
+
+function renderDynamic() {
+  renderSource();
+  renderResult();
+  renderWindowVisual();
+}
+
+function render() {
+  document.getElementById('hint-text').textContent = mode === 'total'
+    ? 'PARTITION BY создаёт отдельный раздел для каждого пользователя. Результат внутри раздела одинаковый.'
+    : 'ORDER BY задаёт последовательность. Для каждой следующей строки к расчёту добавляется ещё один платёж.';
+  document.querySelectorAll('[data-mode]').forEach((button) => button.classList.toggle('active', button.dataset.mode === mode));
+  document.querySelectorAll('[data-aggregate]').forEach((button) => button.classList.toggle('active', button.dataset.aggregate === aggregateKey));
+  renderSql();
+  renderDynamic();
+}
+
+document.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => {
+  mode = button.dataset.mode;
+  render();
+}));
+document.querySelectorAll('[data-aggregate]').forEach((button) => button.addEventListener('click', () => {
+  aggregateKey = button.dataset.aggregate;
+  render();
+}));
+
+render();
+</script>
+</body>
+</html>
